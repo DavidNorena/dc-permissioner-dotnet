@@ -1,8 +1,6 @@
 using System.Reflection;
 using Dabitco.Permissioneer.Domain;
 using Microsoft.OpenApi.Models;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Dabitco.Permissioneer.TestAPI;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +26,8 @@ builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), true);
 builder.Services.AddLogging();
 var permissioneerBuilder = builder.Services.AddPermissioneer()
     .AddInMemoryStorage();
+
+// UNCOMMENT TO USE DATABASE SERVER STORAGE
 // .AddEntityFrameworkStorage(opts =>
 // {
 //     var conStrBuilder = new SqlConnectionStringBuilder(
