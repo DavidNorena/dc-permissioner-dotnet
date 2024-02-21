@@ -5,6 +5,9 @@ trigger:
       - main
       - release/*
 
+variables:
+  buildConfiguration: 'Release'
+
 stages:
 - stage: BuildPublish
   jobs:
@@ -20,6 +23,11 @@ stages:
       failOnStderr: true
       env: 
         GIT_CREDENTIALS: $(System.AccessToken)
+    - task: UseDotNet@2
+      displayName: 'Install .NET Core SDK'
+      inputs:
+        version: 8.x
+        performMultiLevelLookup: true
     - task: DotNetCoreCLI@2
       displayName: 'dotnet build'
       inputs:
