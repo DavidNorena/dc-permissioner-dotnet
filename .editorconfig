@@ -1,0 +1,8 @@
+# C# files
+[*.cs]
+
+# Sort using and Import directives with System.* appearing first
+dotnet_sort_system_directives_first = true
+
+# Remove unnecessary usings
+dotnet_diagnostic.IDE0005.severity = warning

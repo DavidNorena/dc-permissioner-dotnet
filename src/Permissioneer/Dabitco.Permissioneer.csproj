@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Dabitco.Permissioneer</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <Import Project="..\packages.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Dabitco.Permissioneer.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

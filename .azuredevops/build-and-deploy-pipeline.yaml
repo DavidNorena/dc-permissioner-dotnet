@@ -1,0 +1,45 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - release/*
+
+stages:
+- stage: BuildPublish
+  jobs:
+  - job: BuildPublish
+    pool:
+      vmImage: 'ubuntu-latest'
+      demands:
+        - npm
+    steps:
+    - script: ./scripts/release-version.sh
+      name: CalcVersion
+      displayName: 'Calculate Next Version'
+      failOnStderr: true
+      env: 
+        GIT_CREDENTIALS: $(System.AccessToken)
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build'
+      inputs:
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) /p:Version=$(CalcVersion.NEXT_VERSION) /p:AssemblyVersion=$(CalcVersion.ASSEMBLY_VERSION)'
+        versioningScheme: byBuildNumber
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet pack'
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+        command: pack
+        packagesToPack: '**/*Domain.csproj;**/*Permissioneer.csproj;**/*EntityFramework.csproj'
+        nobuild: true
+        versioningScheme: byEnvVar
+        versionEnvVar: CalcVersion.NEXT_VERSION
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet nuget push'
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+        command: 'push'
+        packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+        nuGetFeedType: 'internal'
+        publishVstsFeed: 'dc-core'

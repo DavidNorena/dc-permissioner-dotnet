@@ -1,0 +1,22 @@
+{
+    "editor.formatOnSave": true,
+    "files.exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "**/bin": true,
+      "**/obj": true,
+      "**/.VSCodeCounter": true,
+    },
+    "search.exclude": {
+      "**/.azuredevops": true
+    },
+    "omnisharp.enableEditorConfigSupport": true,
+    "cSpell.words": [
+        "Dabitco",
+        "Permissioneer",
+        "Shouldly"
+    ],
+}

@@ -1,0 +1,14 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Version>0.0.1</Version>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
+    <RootNamespace>$(AssemblyName)</RootNamespace>
+
+    <Company>Dabitco</Company>
+    <Authors>$(Company)</Authors>
+    <Owners>$(Company)</Owners>
+    <Copyright>Copyright 2024 (c) $(Company). All rights reserved.</Copyright>
+    <Product>Dabitco.Permissioneer</Product>
+  </PropertyGroup>
+</Project>
