@@ -50,4 +50,4 @@ stages:
         command: 'push'
         packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
         nuGetFeedType: 'internal'
-        publishVstsFeed: 'dc-core'
+        publishVstsFeed: 'b9e2d67a-05b8-49aa-b1d0-8468c16e95ae/6e0dc4c1-91e8-4f84-8c1d-c33460fc7247'
