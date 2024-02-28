@@ -8,18 +8,18 @@ using Microsoft.AspNetCore.Mvc;
 public class PermissionsController(IPermissioneerContext permissioneerContext) : ControllerBase
 {
 
-    [HttpGet("test", Name = nameof(TestUserPermissionAsync))]
-    public async Task<IActionResult> TestUserPermissionAsync([FromQuery] string[] roles, [FromQuery] string permissionName)
+    [HttpGet("is-granted", Name = nameof(TestIsGrantedAsync))]
+    public async Task<IActionResult> TestIsGrantedAsync([FromQuery] string[] roles, [FromQuery] Guid permissionId)
     {
-        var response = await permissioneerContext.CheckRolesPermissionAsync(roles, permissionName);
+        var response = await permissioneerContext.IsGrantedAsync(roles, permissionId);
 
         return Ok(response);
     }
 
-    [HttpGet("test-multiple", Name = nameof(TestMultipleUserPermissionAsync))]
-    public async Task<IActionResult> TestMultipleUserPermissionAsync([FromQuery] string[] roles, [FromQuery] string[] permissionsName)
+    [HttpGet("are-granted", Name = nameof(TestAreGrantedAsync))]
+    public async Task<IActionResult> TestAreGrantedAsync([FromQuery] string[] roles, [FromQuery] Guid[] permissionIds)
     {
-        var response = await permissioneerContext.CheckRolesPermissionsAsync(roles, permissionsName);
+        var response = await permissioneerContext.AreGrantedAsync(roles, permissionIds);
 
         return Ok(response);
     }

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dabitco.Permissioneer.TestAPI.Migrations
 {
     [DbContext(typeof(PermissioneerDbContext))]
-    [Migration("20240220203042_InitialSetup")]
+    [Migration("20240228024608_InitialSetup")]
     partial class InitialSetup
     {
         /// <inheritdoc />
@@ -34,8 +34,8 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.HasKey("Id");
 
@@ -93,6 +93,9 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -107,17 +110,19 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                         {
                             Id = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
                             IsActive = true,
+                            IsSystem = true,
                             Name = "Admin"
                         },
                         new
                         {
                             Id = new Guid("1a307ea6-fbe1-4048-a447-af7057faa5c5"),
                             IsActive = true,
+                            IsSystem = true,
                             Name = "User"
                         });
                 });
 
-            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.RolePermissionAllowedEntity", b =>
+            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.RolePermissionEntity", b =>
                 {
                     b.Property<Guid>("PermissionId")
                         .HasColumnType("uniqueidentifier");
@@ -125,115 +130,125 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                     b.Property<Guid>("RoleId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsAllowed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
                     b.HasKey("PermissionId", "RoleId");
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("RolePermissionAllowed", "permissioneer");
+                    b.ToTable("RolePermission", "permissioneer");
 
                     b.HasData(
                         new
                         {
                             PermissionId = new Guid("f9ec9c70-3c35-4b6d-b82a-5bbd4b43e4a3"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("05adbf0d-1b79-4777-93de-28474e9ba19e"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("cdfd4277-e7a7-4813-9058-e109fc6a7d0c"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("d6372504-f1f8-4c41-8b1c-7d62f181c92d"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("2069215b-f033-4a43-a8c7-09594a5e191b"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("5dace4cf-a662-4192-bd7b-3bc30a06f4c0"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("19c407cf-cf12-4b81-8552-e985398ce50d"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("2552f6e4-a731-4428-bca5-816d4d00b3f9"),
-                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4")
+                            RoleId = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c4"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("f9ec9c70-3c35-4b6d-b82a-5bbd4b43e4a3"),
-                            RoleId = new Guid("1a307ea6-fbe1-4048-a447-af7057faa5c5")
+                            RoleId = new Guid("1a307ea6-fbe1-4048-a447-af7057faa5c5"),
+                            IsAllowed = true,
+                            IsSystem = true
                         },
                         new
                         {
                             PermissionId = new Guid("d6372504-f1f8-4c41-8b1c-7d62f181c92d"),
-                            RoleId = new Guid("1a307ea6-fbe1-4048-a447-af7057faa5c5")
-                        });
-                });
-
-            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.RolePermissionDeniedEntity", b =>
-                {
-                    b.Property<Guid>("PermissionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("PermissionId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("RolePermissionDenied", "permissioneer");
-
-                    b.HasData(
+                            RoleId = new Guid("1a307ea6-fbe1-4048-a447-af7057faa5c5"),
+                            IsAllowed = true,
+                            IsSystem = true
+                        },
                         new
                         {
                             PermissionId = new Guid("cdfd4277-e7a7-4813-9058-e109fc6a7d0c"),
-                            RoleId = new Guid("1a307ea6-fbe1-4048-a447-af7057faa5c5")
+                            RoleId = new Guid("1a307ea6-fbe1-4048-a447-af7057faa5c5"),
+                            IsAllowed = false,
+                            IsSystem = true
                         });
                 });
 
-            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.RolePermissionAllowedEntity", b =>
+            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.RolePermissionEntity", b =>
                 {
-                    b.HasOne("Dabitco.Permissioneer.Domain.Entities.PermissionEntity", null)
-                        .WithMany()
+                    b.HasOne("Dabitco.Permissioneer.Domain.Entities.PermissionEntity", "Permission")
+                        .WithMany("RolePermissions")
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Dabitco.Permissioneer.Domain.Entities.RoleEntity", null)
-                        .WithMany()
+                    b.HasOne("Dabitco.Permissioneer.Domain.Entities.RoleEntity", "Role")
+                        .WithMany("RolePermissions")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.RolePermissionDeniedEntity", b =>
+            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.PermissionEntity", b =>
                 {
-                    b.HasOne("Dabitco.Permissioneer.Domain.Entities.PermissionEntity", null)
-                        .WithMany()
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("RolePermissions");
+                });
 
-                    b.HasOne("Dabitco.Permissioneer.Domain.Entities.RoleEntity", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+            modelBuilder.Entity("Dabitco.Permissioneer.Domain.Entities.RoleEntity", b =>
+                {
+                    b.Navigation("RolePermissions");
                 });
 #pragma warning restore 612, 618
         }

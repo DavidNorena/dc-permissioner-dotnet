@@ -6,4 +6,5 @@ public class PermissionEntity
     public string Name { get; set; } = string.Empty;
 
     public ICollection<RoleEntity> Roles { get; set; } = [];
+    public ICollection<RolePermissionEntity> RolePermissions { get; set; } = [];
 }

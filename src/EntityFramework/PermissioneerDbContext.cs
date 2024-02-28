@@ -11,8 +11,7 @@ public class PermissioneerDbContext(
     PermissioneerStorageOptions storageOptions,
     IEnumerable<PermissionSeedData> permissionsSeedData,
     IEnumerable<RoleSeedData> rolesSeedData,
-    IEnumerable<RolePermissionAllowedSeedData> permissionsAllowedSeedData,
-    IEnumerable<RolePermissionDeniedSeedData> permissionsDeniedSeedData
+    IEnumerable<RolePermissionSeedData> rolePermissionsSeedData
 ) : DbContext(options)
 {
     public DbSet<RoleEntity> Roles { get; set; }
@@ -30,7 +29,6 @@ public class PermissioneerDbContext(
         modelBuilder.Entity<PermissionEntity>().ConfigurePermissionsSeedData(permissionsSeedData);
         modelBuilder.Entity<RoleEntity>().ConfigureRolesSeedData(rolesSeedData);
 
-        modelBuilder.Entity<RolePermissionAllowedEntity>().ConfigureRolePermissionsAllowedSeedData(permissionsAllowedSeedData);
-        modelBuilder.Entity<RolePermissionDeniedEntity>().ConfigureRolePermissionsDeniedSeedData(permissionsDeniedSeedData);
+        modelBuilder.Entity<RolePermissionEntity>().ConfigureRolePermissionsSeedData(rolePermissionsSeedData);
     }
 }
