@@ -1,22 +1,31 @@
 {
-    "editor.formatOnSave": true,
-    "files.exclude": {
-      "**/.git": true,
-      "**/.svn": true,
-      "**/.hg": true,
-      "**/CVS": true,
-      "**/.DS_Store": true,
-      "**/bin": true,
-      "**/obj": true,
-      "**/.VSCodeCounter": true,
-    },
-    "search.exclude": {
-      "**/.azuredevops": true
-    },
-    "omnisharp.enableEditorConfigSupport": true,
-    "cSpell.words": [
-        "Dabitco",
-        "Permissioneer",
-        "Shouldly"
-    ],
+  "editor.formatOnSave": true,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/bin": true,
+    "**/obj": true,
+    "**/.VSCodeCounter": true,
+  },
+  "search.exclude": {
+    "**/.azuredevops": true
+  },
+  "omnisharp.enableEditorConfigSupport": true,
+  "cSpell.words": [
+    "Dabitco",
+    "Permissioneer",
+    "Shouldly"
+  ],
+  "files.associations": {
+    "*.ado.yaml": "azure-pipelines"
+  },
+  "material-icon-theme.files.associations": {
+    "*.ado.yaml": "azure-pipelines"
+  },
+  "[azure-pipelines]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
