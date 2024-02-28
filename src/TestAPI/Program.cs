@@ -2,6 +2,8 @@ using System.Reflection;
 using Dabitco.Permissioneer.Domain;
 using Microsoft.OpenApi.Models;
 using Dabitco.Permissioneer.TestAPI;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,25 +27,25 @@ builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), true);
 
 builder.Services.AddLogging();
 var permissioneerBuilder = builder.Services.AddPermissioneer()
-    .AddInMemoryStorage();
+    // UNCOMMENT TO USE JUST IN-MEMORY STORAGE
+    // .AddInMemoryStorage();
+    // COMMENT OUT TO USE JUST IN-MEMORY STORAGE
+    .AddEntityFrameworkStorage(opts =>
+    {
+        var conStrBuilder = new SqlConnectionStringBuilder(
+            builder.Configuration.GetConnectionString("PermissioneerDbConnection")
+        )
+        {
+            Password = builder.Configuration["PermissioneerDbPassword"]
+        };
 
-// UNCOMMENT TO USE DATABASE SERVER STORAGE
-// .AddEntityFrameworkStorage(opts =>
-// {
-//     var conStrBuilder = new SqlConnectionStringBuilder(
-//         builder.Configuration.GetConnectionString("PermissioneerDbConnection")
-//     )
-//     {
-//         Password = builder.Configuration["PermissioneerDbPassword"]
-//     };
+        var defaultSchema = "permissioneer";
 
-//     var defaultSchema = "permissioneer";
-
-//     opts.DefaultSchema = defaultSchema;
-//     opts.ConfigureDbContext = b => b.UseSqlServer(conStrBuilder.ConnectionString,
-//         b => b.MigrationsAssembly(Assembly.GetExecutingAssembly().FullName)
-//                 .MigrationsHistoryTable("__EFMigrationsHistory", defaultSchema));
-// });
+        opts.DefaultSchema = defaultSchema;
+        opts.ConfigureDbContext = b => b.UseSqlServer(conStrBuilder.ConnectionString,
+            b => b.MigrationsAssembly(Assembly.GetExecutingAssembly().FullName)
+                    .MigrationsHistoryTable("__EFMigrationsHistory", defaultSchema));
+    });
 
 if (builder.Environment.IsDevelopment())
 {

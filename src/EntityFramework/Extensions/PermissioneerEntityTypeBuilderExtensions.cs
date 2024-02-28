@@ -27,35 +27,24 @@ public static class PermissioneerEntityTypeBuilderExtensions
             {
                 Id = x.Id,
                 Name = x.Name,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                IsSystem = true
             });
 
             builder.HasData(seedData);
         }
     }
 
-    public static void ConfigureRolePermissionsAllowedSeedData(this EntityTypeBuilder<RolePermissionAllowedEntity> builder, IEnumerable<RolePermissionAllowedSeedData> rolePermissionsAllowedSeedData)
+    public static void ConfigureRolePermissionsSeedData(this EntityTypeBuilder<RolePermissionEntity> builder, IEnumerable<RolePermissionSeedData> rolePermissionsSeedData)
     {
-        if (rolePermissionsAllowedSeedData is not null)
+        if (rolePermissionsSeedData is not null)
         {
-            var seedData = rolePermissionsAllowedSeedData.Select(x => new RolePermissionAllowedEntity
+            var seedData = rolePermissionsSeedData.Select(x => new RolePermissionEntity
             {
                 RoleId = x.RoleId,
-                PermissionId = x.PermissionId
-            });
-
-            builder.HasData(seedData);
-        }
-    }
-
-    public static void ConfigureRolePermissionsDeniedSeedData(this EntityTypeBuilder<RolePermissionDeniedEntity> builder, IEnumerable<RolePermissionDeniedSeedData> rolePermissionsDeniedSeedData)
-    {
-        if (rolePermissionsDeniedSeedData is not null)
-        {
-            var seedData = rolePermissionsDeniedSeedData.Select(x => new RolePermissionDeniedEntity
-            {
-                RoleId = x.RoleId,
-                PermissionId = x.PermissionId
+                PermissionId = x.PermissionId,
+                IsAllowed = x.IsAllowed,
+                IsSystem = true
             });
 
             builder.HasData(seedData);

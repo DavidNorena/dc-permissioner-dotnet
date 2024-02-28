@@ -11,9 +11,12 @@ public class PermissionEntityConfiguration : IEntityTypeConfiguration<Permission
         builder.ToTable("Permission");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id)
+            .IsRequired()
+            .ValueGeneratedOnAdd();
 
         builder.Property(x => x.Name)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(64);
     }
 }

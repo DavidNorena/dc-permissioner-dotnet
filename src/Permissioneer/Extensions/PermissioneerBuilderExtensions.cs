@@ -25,28 +25,29 @@ public static class PermissioneerBuilderExtensions
     {
         builder.Services.AddSingleton(rolesSeedData);
 
-        var rolePermissionsAllowedSeedData = rolesSeedData
+        var rolePermissionsSeedData = rolesSeedData
             .SelectMany(role =>
                 (role.PermissionsAllowedIds ?? [])
-                .Select(permissionId => new RolePermissionAllowedSeedData
+                .Select(permissionId => new RolePermissionSeedData
                 {
                     RoleId = role.Id,
-                    PermissionId = permissionId
+                    PermissionId = permissionId,
+                    IsAllowed = true,
+                    IsSystem = true
                 })
+                .Concat(
+                    (role.PermissionsDeniedIds ?? [])
+                    .Select(permissionId => new RolePermissionSeedData
+                    {
+                        RoleId = role.Id,
+                        PermissionId = permissionId,
+                        IsAllowed = false,
+                        IsSystem = true
+                    })
+                )
             );
 
-        var rolePermissionsDeniedSeedData = rolesSeedData
-            .SelectMany(role =>
-                (role.PermissionsDeniedIds ?? [])
-                .Select(permissionId => new RolePermissionDeniedSeedData
-                {
-                    RoleId = role.Id,
-                    PermissionId = permissionId
-                })
-            );
-
-        builder.Services.AddSingleton(rolePermissionsAllowedSeedData);
-        builder.Services.AddSingleton(rolePermissionsDeniedSeedData);
+        builder.Services.AddSingleton(rolePermissionsSeedData);
 
         return builder;
     }

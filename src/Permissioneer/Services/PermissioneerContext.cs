@@ -10,24 +10,24 @@ public class PermissioneerContext(IPermissioneerStorage storage) : IPermissionee
         return await storage.AddRoleAsync(roleName);
     }
 
-    public async Task<bool> AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        return await storage.AssignPermissionToRoleAsync(roleId, permissionId, isAllowed);
+        await storage.AssignPermissionToRoleAsync(roleId, permissionId, isAllowed);
     }
 
-    public async Task<bool> CheckRolesPermissionAsync(string[] roleNames, string permissionName)
+    public async Task<bool> IsGrantedAsync(string[] roleNames, Guid permissionId)
     {
-        return await storage.CheckRolesPermissionAsync(roleNames, permissionName);
+        return await storage.IsGrantedAsync(roleNames, permissionId);
     }
 
-    public async Task<bool> CheckRolesPermissionsAsync(string[] roleNames, string[] permissionNames)
+    public async Task<bool> AreGrantedAsync(string[] roleNames, Guid[] permissionIds)
     {
-        return await storage.CheckRolesPermissionsAsync(roleNames, permissionNames);
+        return await storage.AreGrantedAsync(roleNames, permissionIds);
     }
 
-    public async Task<bool> DeleteRoleAsync(Guid roleId)
+    public async Task DeleteRoleAsync(Guid roleId)
     {
-        return await storage.DeleteRoleAsync(roleId);
+        await storage.DeleteRoleAsync(roleId);
     }
 
     public async Task<RoleEntity> GetRoleAsync(Guid roleId)
@@ -40,16 +40,17 @@ public class PermissioneerContext(IPermissioneerStorage storage) : IPermissionee
         return await storage.ListRolesAsync();
     }
 
-    public async Task<bool> RenameRoleAsync(Guid roleId, string newRoleName)
+    public async Task UpdateRoleAsync(Guid roleId, string newRoleName, bool isActive)
     {
         var role = await GetRoleAsync(roleId);
         role.Name = newRoleName;
+        role.IsActive = isActive;
 
-        return await storage.UpdateRoleAsync(role);
+        await storage.UpdateRoleAsync(role);
     }
 
-    public async Task<bool> UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        return await storage.UnassignPermissionFromRoleAsync(roleId, permissionId, isAllowed);
+        await storage.UnassignPermissionFromRoleAsync(roleId, permissionId, isAllowed);
     }
 }

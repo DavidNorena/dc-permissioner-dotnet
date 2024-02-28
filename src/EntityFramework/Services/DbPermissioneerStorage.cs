@@ -29,170 +29,160 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
         return newRole;
     }
 
-    public async Task<bool> AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        var role = await GetRoleAsync(roleId);
-        if (role == null)
+        var role = await GetRoleAsync(roleId)
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+
+        if (role.IsSystem)
         {
-            return false;
+            throw new InvalidOperationException("System roles cannot be modified");
         }
 
-        var permission = await dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == permissionId);
-        if (permission == null)
+        var permission = await dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == permissionId)
+            ?? throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
+
+        if (role.RolePermissions.Any(rp => rp.PermissionId == permission.Id))
         {
-            return false;
+            throw new InvalidOperationException($"Role with id {roleId} already has permission with id {permissionId}");
         }
 
-        if (role.PermissionsAllowed.Any(p => p.Id == permission.Id) || role.PermissionsDenied.Any(p => p.Id == permission.Id))
+        role.RolePermissions.Add(new RolePermissionEntity
         {
-            return false;
-        }
-
-        if (isAllowed)
-        {
-            role.PermissionsAllowed.Add(permission);
-        }
-        else
-        {
-            role.PermissionsDenied.Add(permission);
-        }
+            RoleId = roleId,
+            PermissionId = permissionId,
+            IsAllowed = isAllowed,
+            IsSystem = false,
+        });
 
         await dbContext.SaveChangesAsync();
-
-        return true;
     }
 
-    public async Task<bool> CheckRolesPermissionAsync(string[] roleNames, string permissionName)
+    public async Task<bool> IsGrantedAsync(string[] roleNames, Guid permissionId)
     {
-        var roles = await dbContext.Roles
+        var rolesWithPermission = await dbContext.Roles
             .Where(r => roleNames.Contains(r.Name))
-            .Select(r => new
-            {
-                Allowed = r.PermissionsAllowed.Any(pa => pa.Name == permissionName),
-                Denied = r.PermissionsDenied.Any(pd => pd.Name == permissionName)
-            })
+            .SelectMany(r => r.RolePermissions)
+            .Where(rp => rp.PermissionId == permissionId)
             .ToListAsync();
 
-        if (roles.Any(r => r.Denied))
+        var deniedPermissionsSet = rolesWithPermission
+            .Where(rp => !rp.IsAllowed)
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
+
+        if (deniedPermissionsSet.Contains(permissionId))
         {
             return false;
         }
 
-        return roles.Any(r => r.Allowed);
+        var allowedPermissionsSet = rolesWithPermission
+            .Where(rp => rp.IsAllowed)
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
+
+        return allowedPermissionsSet.Contains(permissionId);
     }
 
-    public async Task<bool> CheckRolesPermissionsAsync(string[] roleNames, string[] permissionNames)
+    public async Task<bool> AreGrantedAsync(string[] roleNames, Guid[] permissionIds)
     {
-        var roles = await dbContext.Roles
+        var permissionIdSet = permissionIds.ToHashSet();
+
+        var rolesWithPermissions = await dbContext.Roles
             .Where(r => roleNames.Contains(r.Name))
-            .Select(r => new
-            {
-                AllowedPermissions = r.PermissionsAllowed.Select(pa => pa.Name).ToList(),
-                DeniedPermissions = r.PermissionsDenied.Select(pd => pd.Name).ToList()
-            })
+            .SelectMany(r => r.RolePermissions)
             .ToListAsync();
 
-        foreach (var permissionName in permissionNames)
-        {
-            if (roles.Any(role => role.DeniedPermissions.Contains(permissionName)))
-            {
-                return false;
-            }
+        var deniedPermissionsSet = rolesWithPermissions
+            .Where(rp => !rp.IsAllowed)
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
 
-            if (!roles.Any(role => role.AllowedPermissions.Contains(permissionName)))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public async Task<bool> DeleteRoleAsync(Guid roleId)
-    {
-        var role = await GetRoleAsync(roleId);
-        if (role == null)
+        if (deniedPermissionsSet.Overlaps(permissionIdSet))
         {
             return false;
+        }
+
+        var allowedPermissionsSet = rolesWithPermissions
+            .Where(rp => rp.IsAllowed)
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
+
+        return permissionIdSet.IsSubsetOf(allowedPermissionsSet);
+    }
+
+    public async Task DeleteRoleAsync(Guid roleId)
+    {
+        var role = await GetRoleAsync(roleId)
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+
+        if (role.IsSystem)
+        {
+            throw new InvalidOperationException("System roles cannot be deleted");
         }
 
         dbContext.Roles.Remove(role);
 
         await dbContext.SaveChangesAsync();
-
-        return true;
     }
 
     public async Task<RoleEntity?> GetRoleAsync(Guid roleId)
     {
         return await dbContext.Roles
-            .Include(r => r.PermissionsAllowed)
-            .Include(r => r.PermissionsDenied)
+            .Include(r => r.RolePermissions)
             .FirstOrDefaultAsync(r => r.Id == roleId);
-    }
-
-    public Task<RoleEntity?> GetRoleAsync(string roleName)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task<IEnumerable<RoleEntity>> ListRolesAsync()
     {
         return await dbContext.Roles
-            .Include(r => r.PermissionsAllowed)
-            .Include(r => r.PermissionsDenied)
+            .Include(r => r.RolePermissions)
             .ToListAsync();
     }
 
-    public async Task<bool> UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        var role = await GetRoleAsync(roleId);
-        if (role == null)
+        var role = await GetRoleAsync(roleId)
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+
+        if (role.IsSystem)
         {
-            return false;
+            throw new InvalidOperationException("System roles cannot be modified");
         }
 
-        var permission = await dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == permissionId);
-        if (permission == null)
+        var permission = await dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == permissionId)
+            ?? throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
+
+        var rolePermission = role.RolePermissions.FirstOrDefault(rp => rp.PermissionId == permissionId);
+        if (rolePermission == null)
         {
-            return false;
+            throw new InvalidOperationException($"Role with id {roleId} does not have permission with id {permissionId}");
         }
 
-        if (!role.PermissionsAllowed.Any(p => p.Id == permission.Id) || !role.PermissionsDenied.Any(p => p.Id == permission.Id))
-        {
-            return false;
-        }
-
-        if (isAllowed)
-        {
-            role.PermissionsAllowed.Remove(permission);
-        }
-        else
-        {
-            role.PermissionsDenied.Remove(permission);
-        }
+        role.RolePermissions.Remove(rolePermission);
 
         await dbContext.SaveChangesAsync();
-
-        return true;
     }
 
-    public async Task<bool> UpdateRoleAsync(RoleEntity role)
+    public async Task UpdateRoleAsync(RoleEntity role)
     {
-        var existingRole = await dbContext.Roles.FindAsync(role.Id);
-        if (existingRole == null)
+        var existingRole = await dbContext.Roles.FindAsync(role.Id)
+            ?? throw new InvalidOperationException($"Role with id {role.Id} does not exist");
+
+        if (existingRole.IsSystem)
         {
-            return false;
+            throw new InvalidOperationException("System roles cannot be modified");
+        }
+
+        if (await dbContext.Roles.AnyAsync(r => r.Name == role.Name && r.Id != role.Id))
+        {
+            throw new InvalidOperationException($"Role with name {role.Name} already exists");
         }
 
         existingRole.Name = role.Name;
         existingRole.IsActive = role.IsActive;
-        existingRole.PermissionsAllowed = role.PermissionsAllowed;
-        existingRole.PermissionsDenied = role.PermissionsDenied;
 
         dbContext.Entry(existingRole).State = EntityState.Modified;
         await dbContext.SaveChangesAsync();
-
-        return true;
     }
 }

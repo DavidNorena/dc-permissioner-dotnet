@@ -46,25 +46,48 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         {
             if (!roles.ContainsKey(roleSeedData.Id))
             {
-                List<PermissionEntity> allowedPermissions = [];
-                List<PermissionEntity> deniedPermissions = [];
+                var rolePermissions = new List<RolePermissionEntity>();
 
-                if (roleSeedData.PermissionsAllowedIds is not null && roleSeedData.PermissionsAllowedIds.Any())
+                if (roleSeedData.PermissionsAllowedIds is not null)
                 {
-                    allowedPermissions = permissions.Where(p => roleSeedData.PermissionsAllowedIds.Contains(p.Key)).Select(p => p.Value).ToList();
+                    foreach (var allowedId in roleSeedData.PermissionsAllowedIds)
+                    {
+                        if (permissions.ContainsKey(allowedId))
+                        {
+                            rolePermissions.Add(new RolePermissionEntity
+                            {
+                                PermissionId = allowedId,
+                                RoleId = roleSeedData.Id,
+                                IsSystem = true
+                            });
+                        }
+                    }
                 }
 
-                if (roleSeedData.PermissionsDeniedIds is not null && roleSeedData.PermissionsDeniedIds.Any())
+                if (roleSeedData.PermissionsDeniedIds is not null)
                 {
-                    deniedPermissions = permissions.Where(p => roleSeedData.PermissionsDeniedIds.Contains(p.Key)).Select(p => p.Value).ToList();
+                    foreach (var deniedId in roleSeedData.PermissionsDeniedIds)
+                    {
+                        if (permissions.ContainsKey(deniedId))
+                        {
+                            rolePermissions.Add(new RolePermissionEntity
+                            {
+                                PermissionId = deniedId,
+                                RoleId = roleSeedData.Id,
+                                IsAllowed = false,
+                                IsSystem = true
+                            });
+                        }
+                    }
                 }
 
                 roles.Add(roleSeedData.Id, new RoleEntity
                 {
                     Id = roleSeedData.Id,
                     Name = roleSeedData.Name.ToLower(),
-                    PermissionsAllowed = allowedPermissions,
-                    PermissionsDenied = deniedPermissions,
+                    RolePermissions = rolePermissions,
+                    IsSystem = true,
+                    IsActive = roleSeedData.IsActive,
                 });
             }
         }
@@ -88,85 +111,103 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         return Task.FromResult(newRole);
     }
 
-    public Task<bool> AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        if (!roles.TryGetValue(roleId, out var role))
+        var role = await GetRoleAsync(roleId)
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+
+        if (role.IsSystem)
         {
-            return Task.FromResult(false);
+            throw new InvalidOperationException("System roles cannot be modified");
         }
 
         if (!permissions.TryGetValue(permissionId, out var permission))
         {
-            return Task.FromResult(false);
+            throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
         }
 
-        if (role.PermissionsAllowed.Any(p => p.Id == permission.Id) || role.PermissionsDenied.Any(p => p.Id == permission.Id))
+        if (role.RolePermissions.Any(rp => rp.PermissionId == permission.Id))
         {
-            return Task.FromResult(false);
+            throw new InvalidOperationException($"Role with id {roleId} already has permission with id {permissionId}");
         }
 
-        if (isAllowed)
+        role.RolePermissions.Add(new RolePermissionEntity
         {
-            role.PermissionsAllowed.Add(permission);
-        }
-        else
-        {
-            role.PermissionsDenied.Add(permission);
-        }
-
-        return Task.FromResult(true);
+            RoleId = roleId,
+            PermissionId = permissionId,
+            IsAllowed = isAllowed,
+            IsSystem = false,
+        });
     }
 
-    public Task<bool> CheckRolesPermissionAsync(string[] roleNames, string permissionName)
+    public Task<bool> IsGrantedAsync(string[] roleNames, Guid permissionId)
     {
-        roleNames = roleNames.Select(rn => rn.ToLower()).ToArray();
+        var normalizedRoleNames = new HashSet<string>(roleNames.Select(rn => rn.ToLowerInvariant()));
 
-        var permission = permissions.Values.FirstOrDefault(p => p.Name == permissionName);
-        if (permission == null)
+        if (!permissions.Values.Any(p => p.Id == permissionId))
         {
             return Task.FromResult(false);
         }
 
-        var rolesWithPermission = roles.Values
-            .Where(r => roleNames.Contains(r.Name));
+        var isPermissionDenied = roles.Values.Any(role =>
+            normalizedRoleNames.Contains(role.Name.ToLowerInvariant()) &&
+            role.RolePermissions.Any(rp => rp.PermissionId == permissionId && !rp.IsAllowed));
 
-        var isPermissionDenied = rolesWithPermission.Any(r => r.PermissionsDenied.Contains(permission));
         if (isPermissionDenied)
         {
             return Task.FromResult(false);
         }
 
-        var isPermissionAllowed = rolesWithPermission.Any(r => r.PermissionsAllowed.Contains(permission));
+        var isPermissionAllowed = roles.Values.Any(role =>
+            normalizedRoleNames.Contains(role.Name.ToLowerInvariant()) &&
+            role.RolePermissions.Any(rp => rp.PermissionId == permissionId && rp.IsAllowed));
+
         return Task.FromResult(isPermissionAllowed);
     }
 
-    public Task<bool> CheckRolesPermissionsAsync(string[] roleNames, string[] permissionNames)
+    public Task<bool> AreGrantedAsync(string[] roleNames, Guid[] permissionIds)
     {
-        roleNames = roleNames.Select(rn => rn.ToLower()).ToArray();
-
-        var matchedPermissions = permissions.Values.Where(p => permissionNames.Contains(p.Name)).ToList();
-
-        var rolesWithPermission = roles.Values
-            .Where(r => roleNames.Contains(r.Name));
-
-        foreach (var permission in matchedPermissions)
+        var normalizedRoleNames = new HashSet<string>(roleNames.Select(rn => rn.ToLowerInvariant()));
+        if (!permissionIds.All(pid => permissions.Values.Any(p => p.Id == pid)))
         {
-            var isPermissionDenied = rolesWithPermission.Any(r => r.PermissionsDenied.Contains(permission));
-            if (isPermissionDenied)
-            {
-                return Task.FromResult(false);
-            }
+            return Task.FromResult(false);
         }
 
-        var isAllPermissionsAllowed = matchedPermissions.All(mp =>
-            rolesWithPermission.Any(r => r.PermissionsAllowed.Contains(mp)));
+        var deniedPermissions = roles.Values
+            .Where(role => normalizedRoleNames.Contains(role.Name.ToLowerInvariant()))
+            .SelectMany(role => role.RolePermissions)
+            .Where(rp => !rp.IsAllowed && permissionIds.Contains(rp.PermissionId))
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
 
-        return Task.FromResult(isAllPermissionsAllowed);
+        if (deniedPermissions.Count != 0)
+        {
+            return Task.FromResult(false);
+        }
+
+        var allowedPermissions = roles.Values
+            .Where(role => normalizedRoleNames.Contains(role.Name.ToLowerInvariant()))
+            .SelectMany(role => role.RolePermissions)
+            .Where(rp => rp.IsAllowed && permissionIds.Contains(rp.PermissionId))
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
+
+        return Task.FromResult(permissionIds.All(allowedPermissions.Contains));
     }
 
-    public Task<bool> DeleteRoleAsync(Guid roleId)
+    public Task DeleteRoleAsync(Guid roleId)
     {
-        return Task.FromResult(roles.Remove(roleId));
+        var existingRole = roles.FirstOrDefault(r => r.Value.Id == roleId).Value
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+
+        if (existingRole.IsSystem)
+        {
+            throw new InvalidOperationException("System roles cannot be deleted");
+        }
+
+        roles.Remove(roleId);
+
+        return Task.CompletedTask;
     }
 
     public Task<RoleEntity?> GetRoleAsync(Guid roleId)
@@ -181,44 +222,42 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         return Task.FromResult(roles.Values.AsEnumerable());
     }
 
-    public Task<bool> UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        if (!roles.TryGetValue(roleId, out var role))
+        var role = await GetRoleAsync(roleId)
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+
+        if (role.IsSystem)
         {
-            return Task.FromResult(false);
+            throw new InvalidOperationException("System roles cannot be modified");
         }
 
         if (!permissions.TryGetValue(permissionId, out var permission))
         {
-            return Task.FromResult(false);
+            throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
         }
 
-        if (!role.PermissionsAllowed.Any(p => p.Id == permission.Id) || !role.PermissionsDenied.Any(p => p.Id == permission.Id))
-        {
-            return Task.FromResult(false);
-        }
+        var existingRolePermission = role.RolePermissions.FirstOrDefault(rp => rp.PermissionId == permissionId)
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not have permission with id {permissionId}");
 
-        if (isAllowed)
-        {
-            role.PermissionsAllowed.Remove(permission);
-        }
-        else
-        {
-            role.PermissionsDenied.Remove(permission);
-        }
-
-        return Task.FromResult(true);
+        role.RolePermissions.Remove(existingRolePermission);
     }
 
-    public Task<bool> UpdateRoleAsync(RoleEntity role)
+    public Task UpdateRoleAsync(RoleEntity role)
     {
-        if (!roles.ContainsKey(role.Id))
+        var existingRole = roles.FirstOrDefault(r => r.Value.Id == role.Id).Value
+            ?? throw new InvalidOperationException($"Role with id {role.Id} does not exist");
+
+        if (existingRole.IsSystem)
         {
-            return Task.FromResult(false);
+            throw new InvalidOperationException("System roles cannot be modified");
         }
 
-        roles[role.Id] = role;
+        existingRole.Name = role.Name;
+        existingRole.IsActive = role.IsActive;
 
-        return Task.FromResult(true);
+        roles[role.Id] = existingRole;
+
+        return Task.CompletedTask;
     }
 }
