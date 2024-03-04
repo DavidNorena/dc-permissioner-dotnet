@@ -18,6 +18,6 @@ variables:
 stages:
   - template: templates/dotnet/library/build-and-deploy-stages.ado.yaml@ado-templates
     parameters:
-      packagesToPack: '**/*Domain.csproj;**/*Permissioneer.csproj;**/*EntityFramework.csproj'
+      packagesToPack: '**/*Domain.csproj;**/*Permissioneer.csproj;**/*EntityFramework.csproj;**/*AspNet.csproj'
       feedId: 'b9e2d67a-05b8-49aa-b1d0-8468c16e95ae/6e0dc4c1-91e8-4f84-8c1d-c33460fc7247'
       repoName: 'dc-permissioneer-dotnet'

@@ -8,43 +8,43 @@ public static class PermissioneerSeedData
     [
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.RolesRead,
-            Name = "Permissioneer.Roles.Read"
+            Id = PermissioneerSeedDataPermissionsIds.RolesRead,
+            Name = "read:roles"
         },
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.RolesWrite,
-            Name = "Permissioneer.Roles.Write"
+            Id = PermissioneerSeedDataPermissionsIds.RolesWrite,
+            Name = "write:roles"
         },
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.RolesDelete,
-            Name = "Permissioneer.Roles.Delete"
+            Id = PermissioneerSeedDataPermissionsIds.RolesDelete,
+            Name = "delete:roles"
         },
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.PermissionsRead,
-            Name = "Permissioneer.Permissions.Read"
+            Id = PermissioneerSeedDataPermissionsIds.PermissionsRead,
+            Name = "read:permissions"
         },
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.PermissionsWrite,
-            Name = "Permissioneer.Permissions.Write"
+            Id = PermissioneerSeedDataPermissionsIds.PermissionsWrite,
+            Name = "write:permissions"
         },
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.PermissionsDelete,
-            Name = "Permissioneer.Permissions.Delete"
+            Id = PermissioneerSeedDataPermissionsIds.PermissionsDelete,
+            Name = "delete:permissions"
         },
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.PermissionsAssign,
-            Name = "Permissioneer.Permissions.Assign"
+            Id = PermissioneerSeedDataPermissionsIds.PermissionsAssign,
+            Name = "assign:permissions"
         },
         new PermissionSeedData
         {
-            Id = PermissioneerSeedDataPermissionsId.PermissionsUnassign,
-            Name = "Permissioneer.Permissions.Unassign"
+            Id = PermissioneerSeedDataPermissionsIds.PermissionsUnassign,
+            Name = "unassign:permissions"
         }
     ];
 
@@ -56,14 +56,14 @@ public static class PermissioneerSeedData
             Name = "Admin",
             PermissionsAllowedIds =
             [
-                PermissioneerSeedDataPermissionsId.RolesRead,
-                PermissioneerSeedDataPermissionsId.RolesWrite,
-                PermissioneerSeedDataPermissionsId.RolesDelete,
-                PermissioneerSeedDataPermissionsId.PermissionsRead,
-                PermissioneerSeedDataPermissionsId.PermissionsWrite,
-                PermissioneerSeedDataPermissionsId.PermissionsDelete,
-                PermissioneerSeedDataPermissionsId.PermissionsAssign,
-                PermissioneerSeedDataPermissionsId.PermissionsUnassign
+                PermissioneerSeedDataPermissionsIds.RolesRead,
+                PermissioneerSeedDataPermissionsIds.RolesWrite,
+                PermissioneerSeedDataPermissionsIds.RolesDelete,
+                PermissioneerSeedDataPermissionsIds.PermissionsRead,
+                PermissioneerSeedDataPermissionsIds.PermissionsWrite,
+                PermissioneerSeedDataPermissionsIds.PermissionsDelete,
+                PermissioneerSeedDataPermissionsIds.PermissionsAssign,
+                PermissioneerSeedDataPermissionsIds.PermissionsUnassign
             ]
         },
         new RoleSeedData
@@ -72,19 +72,19 @@ public static class PermissioneerSeedData
             Name = "User",
             PermissionsAllowedIds =
             [
-                PermissioneerSeedDataPermissionsId.RolesRead,
-                PermissioneerSeedDataPermissionsId.PermissionsRead
+                PermissioneerSeedDataPermissionsIds.RolesRead,
+                PermissioneerSeedDataPermissionsIds.PermissionsRead
             ],
             PermissionsDeniedIds =
             [
-                PermissioneerSeedDataPermissionsId.RolesDelete,
+                PermissioneerSeedDataPermissionsIds.RolesDelete,
             ]
         }
     ];
 }
 
 
-public static class PermissioneerSeedDataPermissionsId
+public static class PermissioneerSeedDataPermissionsIds
 {
     public static Guid RolesRead => Guid.Parse("f9ec9c70-3c35-4b6d-b82a-5bbd4b43e4a3");
     public static Guid RolesWrite => Guid.Parse("05adbf0d-1b79-4777-93de-28474e9ba19e");

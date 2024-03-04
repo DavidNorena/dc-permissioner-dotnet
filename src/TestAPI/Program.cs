@@ -4,6 +4,9 @@ using Microsoft.OpenApi.Models;
 using Dabitco.Permissioneer.TestAPI;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +24,18 @@ builder.Services.AddSwaggerGen(options =>
         },
     });
 });
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Auth0:Authority"];
+        options.Audience = builder.Configuration["Auth0:Audience"];
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            NameClaimType = ClaimTypes.NameIdentifier
+        };
+    });
 
 builder.Services.Configure<RouteOptions>(opts => opts.LowercaseUrls = true);
 builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), true);
@@ -45,7 +60,8 @@ var permissioneerBuilder = builder.Services.AddPermissioneer()
         opts.ConfigureDbContext = b => b.UseSqlServer(conStrBuilder.ConnectionString,
             b => b.MigrationsAssembly(Assembly.GetExecutingAssembly().FullName)
                     .MigrationsHistoryTable("__EFMigrationsHistory", defaultSchema));
-    });
+    })
+    .AddAspNetAuthorization();
 
 if (builder.Environment.IsDevelopment())
 {
@@ -63,6 +79,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

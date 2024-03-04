@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dabitco.Permissioneer.Domain.Abstract.Services;
 using Dabitco.Permissioneer.Domain.Entities;
+using Dabitco.Permissioneer.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermissioneerStorage
@@ -58,12 +59,21 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task<bool> IsGrantedAsync(string[] roleNames, Guid permissionId)
+    public async Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
     {
+        var permission = await dbContext.Permissions
+            .Where(p => p.Name == permissionName)
+            .SingleOrDefaultAsync();
+
+        if (permission == null)
+        {
+            return false;
+        }
+
         var rolesWithPermission = await dbContext.Roles
             .Where(r => roleNames.Contains(r.Name))
             .SelectMany(r => r.RolePermissions)
-            .Where(rp => rp.PermissionId == permissionId)
+            .Where(rp => rp.PermissionId == permission.Id)
             .ToListAsync();
 
         var deniedPermissionsSet = rolesWithPermission
@@ -71,7 +81,7 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
             .Select(rp => rp.PermissionId)
             .ToHashSet();
 
-        if (deniedPermissionsSet.Contains(permissionId))
+        if (deniedPermissionsSet.Contains(permission.Id))
         {
             return false;
         }
@@ -81,11 +91,21 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
             .Select(rp => rp.PermissionId)
             .ToHashSet();
 
-        return allowedPermissionsSet.Contains(permissionId);
+        return allowedPermissionsSet.Contains(permission.Id);
     }
 
-    public async Task<bool> AreGrantedAsync(string[] roleNames, Guid[] permissionIds)
+    public async Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
     {
+        var permissionIds = await dbContext.Permissions
+            .Where(p => permissionNames.Contains(p.Name))
+            .Select(p => p.Id)
+            .ToListAsync();
+
+        if (permissionIds.Count == 0)
+        {
+            return false;
+        }
+
         var permissionIdSet = permissionIds.ToHashSet();
 
         var rolesWithPermissions = await dbContext.Roles
@@ -93,22 +113,43 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
             .SelectMany(r => r.RolePermissions)
             .ToListAsync();
 
-        var deniedPermissionsSet = rolesWithPermissions
-            .Where(rp => !rp.IsAllowed)
-            .Select(rp => rp.PermissionId)
-            .ToHashSet();
-
-        if (deniedPermissionsSet.Overlaps(permissionIdSet))
+        if (operatorType == PermissionsOperatorType.And)
         {
-            return false;
+            var deniedPermissionsSet = rolesWithPermissions
+                .Where(rp => !rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId))
+                .Select(rp => rp.PermissionId)
+                .ToHashSet();
+
+            if (deniedPermissionsSet.Count != 0)
+            {
+                return false;
+            }
+
+            var allowedPermissionsSet = rolesWithPermissions
+                .Where(rp => rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId))
+                .Select(rp => rp.PermissionId)
+                .ToHashSet();
+
+            return permissionIdSet.IsSubsetOf(allowedPermissionsSet);
+        }
+        else if (operatorType == PermissionsOperatorType.Or)
+        {
+            return rolesWithPermissions.Any(rp => rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId));
         }
 
-        var allowedPermissionsSet = rolesWithPermissions
-            .Where(rp => rp.IsAllowed)
-            .Select(rp => rp.PermissionId)
-            .ToHashSet();
+        return false;
+    }
 
-        return permissionIdSet.IsSubsetOf(allowedPermissionsSet);
+    public Task<bool> AreScopesGrantedAsync(string[] requiredScopes, string[] grantedScopes, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
+    {
+        var result = operatorType switch
+        {
+            PermissionsOperatorType.And => requiredScopes.All(requiredScope => grantedScopes.Contains(requiredScope)),
+            PermissionsOperatorType.Or => requiredScopes.Any(requiredScope => grantedScopes.Contains(requiredScope)),
+            _ => throw new NotImplementedException($"Unsupported operator type: {operatorType}"),
+        };
+
+        return Task.FromResult(result);
     }
 
     public async Task DeleteRoleAsync(Guid roleId)
@@ -131,6 +172,11 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
         return await dbContext.Roles
             .Include(r => r.RolePermissions)
             .FirstOrDefaultAsync(r => r.Id == roleId);
+    }
+
+    public async Task<IEnumerable<PermissionEntity>> ListPermissionsAsync()
+    {
+        return await dbContext.Permissions.ToListAsync();
     }
 
     public async Task<IEnumerable<RoleEntity>> ListRolesAsync()
