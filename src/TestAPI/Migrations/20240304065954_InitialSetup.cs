@@ -79,14 +79,14 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                 columns: new[] { "Id", "Name" },
                 values: new object[,]
                 {
-                    { new Guid("05adbf0d-1b79-4777-93de-28474e9ba19e"), "Permissioneer.Roles.Write" },
-                    { new Guid("19c407cf-cf12-4b81-8552-e985398ce50d"), "Permissioneer.Permissions.Assign" },
-                    { new Guid("2069215b-f033-4a43-a8c7-09594a5e191b"), "Permissioneer.Permissions.Write" },
-                    { new Guid("2552f6e4-a731-4428-bca5-816d4d00b3f9"), "Permissioneer.Permissions.Unassign" },
-                    { new Guid("5dace4cf-a662-4192-bd7b-3bc30a06f4c0"), "Permissioneer.Permissions.Delete" },
-                    { new Guid("cdfd4277-e7a7-4813-9058-e109fc6a7d0c"), "Permissioneer.Roles.Delete" },
-                    { new Guid("d6372504-f1f8-4c41-8b1c-7d62f181c92d"), "Permissioneer.Permissions.Read" },
-                    { new Guid("f9ec9c70-3c35-4b6d-b82a-5bbd4b43e4a3"), "Permissioneer.Roles.Read" }
+                    { new Guid("05adbf0d-1b79-4777-93de-28474e9ba19e"), "write:roles" },
+                    { new Guid("19c407cf-cf12-4b81-8552-e985398ce50d"), "assign:permissions" },
+                    { new Guid("2069215b-f033-4a43-a8c7-09594a5e191b"), "write:permissions" },
+                    { new Guid("2552f6e4-a731-4428-bca5-816d4d00b3f9"), "unassign:permissions" },
+                    { new Guid("5dace4cf-a662-4192-bd7b-3bc30a06f4c0"), "delete:permissions" },
+                    { new Guid("cdfd4277-e7a7-4813-9058-e109fc6a7d0c"), "delete:roles" },
+                    { new Guid("d6372504-f1f8-4c41-8b1c-7d62f181c92d"), "read:permissions" },
+                    { new Guid("f9ec9c70-3c35-4b6d-b82a-5bbd4b43e4a3"), "read:roles" }
                 });
 
             migrationBuilder.InsertData(

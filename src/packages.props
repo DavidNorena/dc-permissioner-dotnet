@@ -10,5 +10,6 @@
     <Owners>$(Company)</Owners>
     <Copyright>Copyright 2024 (c) $(Company). All rights reserved.</Copyright>
     <Product>Dabitco.Permissioneer</Product>
+    <Description>Permissioneer is a .NET library for managing permissions in your application.</Description>
   </PropertyGroup>
 </Project>

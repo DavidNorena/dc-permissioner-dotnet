@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dabitco.Permissioneer.TestAPI.Migrations
 {
     [DbContext(typeof(PermissioneerDbContext))]
-    [Migration("20240228024608_InitialSetup")]
+    [Migration("20240304065954_InitialSetup")]
     partial class InitialSetup
     {
         /// <inheritdoc />
@@ -45,42 +45,42 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                         new
                         {
                             Id = new Guid("f9ec9c70-3c35-4b6d-b82a-5bbd4b43e4a3"),
-                            Name = "Permissioneer.Roles.Read"
+                            Name = "read:roles"
                         },
                         new
                         {
                             Id = new Guid("05adbf0d-1b79-4777-93de-28474e9ba19e"),
-                            Name = "Permissioneer.Roles.Write"
+                            Name = "write:roles"
                         },
                         new
                         {
                             Id = new Guid("cdfd4277-e7a7-4813-9058-e109fc6a7d0c"),
-                            Name = "Permissioneer.Roles.Delete"
+                            Name = "delete:roles"
                         },
                         new
                         {
                             Id = new Guid("d6372504-f1f8-4c41-8b1c-7d62f181c92d"),
-                            Name = "Permissioneer.Permissions.Read"
+                            Name = "read:permissions"
                         },
                         new
                         {
                             Id = new Guid("2069215b-f033-4a43-a8c7-09594a5e191b"),
-                            Name = "Permissioneer.Permissions.Write"
+                            Name = "write:permissions"
                         },
                         new
                         {
                             Id = new Guid("5dace4cf-a662-4192-bd7b-3bc30a06f4c0"),
-                            Name = "Permissioneer.Permissions.Delete"
+                            Name = "delete:permissions"
                         },
                         new
                         {
                             Id = new Guid("19c407cf-cf12-4b81-8552-e985398ce50d"),
-                            Name = "Permissioneer.Permissions.Assign"
+                            Name = "assign:permissions"
                         },
                         new
                         {
                             Id = new Guid("2552f6e4-a731-4428-bca5-816d4d00b3f9"),
-                            Name = "Permissioneer.Permissions.Unassign"
+                            Name = "unassign:permissions"
                         });
                 });
 

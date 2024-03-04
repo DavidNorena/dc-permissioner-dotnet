@@ -2,6 +2,7 @@ namespace Dabitco.Permissioneer.Services;
 
 using Dabitco.Permissioneer.Domain.Abstract.Services;
 using Dabitco.Permissioneer.Domain.Entities;
+using Dabitco.Permissioneer.Domain.Enums;
 
 public class PermissioneerContext(IPermissioneerStorage storage) : IPermissioneerContext
 {
@@ -15,14 +16,19 @@ public class PermissioneerContext(IPermissioneerStorage storage) : IPermissionee
         await storage.AssignPermissionToRoleAsync(roleId, permissionId, isAllowed);
     }
 
-    public async Task<bool> IsGrantedAsync(string[] roleNames, Guid permissionId)
+    public async Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
     {
-        return await storage.IsGrantedAsync(roleNames, permissionId);
+        return await storage.IsPermissionGrantedAsync(roleNames, permissionName);
     }
 
-    public async Task<bool> AreGrantedAsync(string[] roleNames, Guid[] permissionIds)
+    public async Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
     {
-        return await storage.AreGrantedAsync(roleNames, permissionIds);
+        return await storage.ArePermissionsGrantedAsync(roleNames, permissionNames, operatorType);
+    }
+
+    public async Task<bool> AreScopesGrantedAsync(string[] requiredScopes, string[] grantedScopes, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
+    {
+        return await storage.AreScopesGrantedAsync(requiredScopes, grantedScopes, operatorType);
     }
 
     public async Task DeleteRoleAsync(Guid roleId)
@@ -33,6 +39,11 @@ public class PermissioneerContext(IPermissioneerStorage storage) : IPermissionee
     public async Task<RoleEntity> GetRoleAsync(Guid roleId)
     {
         return await storage.GetRoleAsync(roleId) ?? throw new Exception($"Role with Id {roleId} not found");
+    }
+
+    public async Task<IEnumerable<PermissionEntity>> ListPermissionsAsync()
+    {
+        return await storage.ListPermissionsAsync();
     }
 
     public async Task<IEnumerable<RoleEntity>> ListRolesAsync()
