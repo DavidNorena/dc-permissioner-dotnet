@@ -12,7 +12,9 @@ public static class PermissioneerEntityTypeBuilderExtensions
             var seedData = permissionsSeedData.Select(x => new PermissionEntity
             {
                 Id = x.Id,
-                Name = x.Name
+                Name = x.Name,
+                Description = x.Description,
+                IsAssignable = x.IsAssignable,
             });
 
             builder.HasData(seedData);
@@ -27,6 +29,7 @@ public static class PermissioneerEntityTypeBuilderExtensions
             {
                 Id = x.Id,
                 Name = x.Name,
+                Description = x.Description,
                 IsActive = x.IsActive,
                 IsSystem = true
             });

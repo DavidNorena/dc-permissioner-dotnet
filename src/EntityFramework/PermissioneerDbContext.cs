@@ -14,8 +14,10 @@ public class PermissioneerDbContext(
     IEnumerable<RolePermissionSeedData> rolePermissionsSeedData
 ) : DbContext(options)
 {
+    public DbSet<ApiKeyEntity> ApiKeys { get; set; }
     public DbSet<RoleEntity> Roles { get; set; }
     public DbSet<PermissionEntity> Permissions { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

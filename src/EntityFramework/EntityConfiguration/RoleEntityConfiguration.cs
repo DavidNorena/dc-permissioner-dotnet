@@ -17,7 +17,11 @@ public class RoleEntityConfiguration : IEntityTypeConfiguration<RoleEntity>
 
         builder.Property(x => x.Name)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(64);
+
+        builder.Property(x => x.Description)
+            .IsRequired()
+            .HasMaxLength(256);
 
         builder.Property(x => x.IsActive)
             .IsRequired();

@@ -1,6 +1,5 @@
 namespace Dabitco.Permissioneer.AspNet.Authorization;
 
-using Dabitco.Permissioneer.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
@@ -13,11 +12,10 @@ public class PermissioneerAuthorizationPolicyProvider(IOptions<AuthorizationOpti
             var policyParts = policyName["Permissioneer;".Length..].Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
             var scopes = policyParts[0].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            var operatorType = (PermissionsOperatorType)Enum.Parse(typeof(PermissionsOperatorType), policyParts[1]);
 
             var policyBuilder = new AuthorizationPolicyBuilder();
             policyBuilder.RequireAuthenticatedUser();
-            policyBuilder.AddRequirements(new PermissioneerRequirement(scopes, operatorType));
+            policyBuilder.AddRequirements(new PermissioneerRequirement(scopes));
 
             return policyBuilder.Build();
         }

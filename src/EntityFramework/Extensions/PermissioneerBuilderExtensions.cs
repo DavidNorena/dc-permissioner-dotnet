@@ -1,6 +1,6 @@
 namespace Dabitco.Permissioneer.Domain;
 
-using Dabitco.Permissioneer.Domain.Abstract.Services;
+using Dabitco.Permissioneer.Domain.Abstract.Storage;
 using Dabitco.Permissioneer.EntityFramework;
 using Dabitco.Permissioneer.EntityFramework.Options;
 using Dabitco.Permissioneer.EntityFramework.Services;
@@ -14,7 +14,9 @@ public static class PermissioneerBuilderExtensions
         storageOptions.Invoke(options);
         builder.Services.AddSingleton(options);
 
-        builder.Services.AddScoped<IPermissioneerStorage, DbPermissioneerStorage>();
+        builder.Services.AddScoped<PermissionsStorageBase, DbPermissionsStorage>();
+        builder.Services.AddScoped<ApiKeysStorageBase, DbApiKeysStorage>();
+
         builder.Services.AddDbContext<PermissioneerDbContext>(dbCtxBuilder =>
         {
             options.ConfigureDbContext?.Invoke(dbCtxBuilder);

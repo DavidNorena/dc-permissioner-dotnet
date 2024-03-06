@@ -1,36 +1,43 @@
 namespace Dabitco.Permissioneer.EntityFramework.Services;
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Dabitco.Permissioneer.Domain.Abstract.Services;
+using Dabitco.Permissioneer.Domain.Abstract.Storage;
 using Dabitco.Permissioneer.Domain.Entities;
-using Dabitco.Permissioneer.Domain.Enums;
+using Dabitco.Permissioneer.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
-public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermissioneerStorage
+public class DbPermissionsStorage(PermissioneerDbContext dbContext) : PermissionsStorageBase
 {
-    public async Task<RoleEntity> AddRoleAsync(string roleName)
+    public async override Task<RoleModel> AddRoleAsync(RoleAddRequest roleAddRequest)
     {
-        var existingRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
+        var existingRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == roleAddRequest.Name);
         if (existingRole != null)
         {
-            throw new InvalidOperationException($"Role with name {roleName} already exists");
+            throw new InvalidOperationException($"Role with name {roleAddRequest.Name} already exists");
         }
 
         var newRole = new RoleEntity
         {
             Id = Guid.NewGuid(),
-            Name = roleName,
+            Name = roleAddRequest.Name,
+            Description = roleAddRequest.Description,
             IsActive = true,
         };
 
         await dbContext.Roles.AddAsync(newRole);
         await dbContext.SaveChangesAsync();
 
-        return newRole;
+        return new RoleModel
+        {
+            Id = newRole.Id,
+            Name = newRole.Name,
+            Description = newRole.Description,
+            IsActive = newRole.IsActive,
+            IsSystem = newRole.IsSystem,
+            PermissionsIds = newRole.RolePermissions.Select(rp => rp.PermissionId),
+        };
     }
 
-    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async override Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
         var role = await GetRoleAsync(roleId)
             ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
@@ -42,6 +49,11 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
 
         var permission = await dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == permissionId)
             ?? throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
+
+        if (!permission.IsAssignable)
+        {
+            throw new InvalidOperationException($"Permission with id {permissionId} is not assignable");
+        }
 
         if (role.RolePermissions.Any(rp => rp.PermissionId == permission.Id))
         {
@@ -59,7 +71,7 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
+    public async override Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
     {
         var permission = await dbContext.Permissions
             .Where(p => p.Name == permissionName)
@@ -94,12 +106,12 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
         return allowedPermissionsSet.Contains(permission.Id);
     }
 
-    public async Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
+    public async override Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames)
     {
         var permissionIds = await dbContext.Permissions
-            .Where(p => permissionNames.Contains(p.Name))
-            .Select(p => p.Id)
-            .ToListAsync();
+        .Where(p => permissionNames.Contains(p.Name))
+        .Select(p => p.Id)
+        .ToListAsync();
 
         if (permissionIds.Count == 0)
         {
@@ -113,46 +125,22 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
             .SelectMany(r => r.RolePermissions)
             .ToListAsync();
 
-        if (operatorType == PermissionsOperatorType.And)
+        var deniedPermissionsSet = rolesWithPermissions
+            .Where(rp => !rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId))
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
+
+        if (deniedPermissionsSet.Count > 0)
         {
-            var deniedPermissionsSet = rolesWithPermissions
-                .Where(rp => !rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId))
-                .Select(rp => rp.PermissionId)
-                .ToHashSet();
-
-            if (deniedPermissionsSet.Count != 0)
-            {
-                return false;
-            }
-
-            var allowedPermissionsSet = rolesWithPermissions
-                .Where(rp => rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId))
-                .Select(rp => rp.PermissionId)
-                .ToHashSet();
-
-            return permissionIdSet.IsSubsetOf(allowedPermissionsSet);
-        }
-        else if (operatorType == PermissionsOperatorType.Or)
-        {
-            return rolesWithPermissions.Any(rp => rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId));
+            return false;
         }
 
-        return false;
+        var isAnyPermissionGranted = rolesWithPermissions.Any(rp => rp.IsAllowed && permissionIdSet.Contains(rp.PermissionId));
+
+        return isAnyPermissionGranted;
     }
 
-    public Task<bool> AreScopesGrantedAsync(string[] requiredScopes, string[] grantedScopes, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
-    {
-        var result = operatorType switch
-        {
-            PermissionsOperatorType.And => requiredScopes.All(requiredScope => grantedScopes.Contains(requiredScope)),
-            PermissionsOperatorType.Or => requiredScopes.Any(requiredScope => grantedScopes.Contains(requiredScope)),
-            _ => throw new NotImplementedException($"Unsupported operator type: {operatorType}"),
-        };
-
-        return Task.FromResult(result);
-    }
-
-    public async Task DeleteRoleAsync(Guid roleId)
+    public async override Task DeleteRoleAsync(Guid roleId)
     {
         var role = await GetRoleAsync(roleId)
             ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
@@ -167,26 +155,48 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task<RoleEntity?> GetRoleAsync(Guid roleId)
+    public override async Task<IEnumerable<PermissionEntity>> GetPermissionsAsync(Guid[] permissionsIds)
+    {
+        return await dbContext.Permissions
+            .Where(p => permissionsIds.Contains(p.Id))
+            .ToListAsync();
+    }
+
+    public async override Task<RoleEntity?> GetRoleAsync(Guid roleId)
     {
         return await dbContext.Roles
             .Include(r => r.RolePermissions)
             .FirstOrDefaultAsync(r => r.Id == roleId);
     }
 
-    public async Task<IEnumerable<PermissionEntity>> ListPermissionsAsync()
+    public async override Task<IEnumerable<PermissionModel>> ListPermissionsAsync()
     {
-        return await dbContext.Permissions.ToListAsync();
+        return await dbContext.Permissions.Select(p => new PermissionModel
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Description = p.Description,
+        }).ToListAsync();
     }
 
-    public async Task<IEnumerable<RoleEntity>> ListRolesAsync()
+    public async override Task<IEnumerable<RoleModel>> ListRolesAsync()
     {
-        return await dbContext.Roles
+        var roles = await dbContext.Roles
             .Include(r => r.RolePermissions)
             .ToListAsync();
+
+        return roles.Select(r => new RoleModel
+        {
+            Id = r.Id,
+            Name = r.Name,
+            Description = r.Description,
+            IsActive = r.IsActive,
+            IsSystem = r.IsSystem,
+            PermissionsIds = r.RolePermissions.Select(rp => rp.Permission.Id),
+        });
     }
 
-    public async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async override Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
         var role = await GetRoleAsync(roleId)
             ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
@@ -199,18 +209,20 @@ public class DbPermissioneerStorage(PermissioneerDbContext dbContext) : IPermiss
         var permission = await dbContext.Permissions.FirstOrDefaultAsync(p => p.Id == permissionId)
             ?? throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
 
-        var rolePermission = role.RolePermissions.FirstOrDefault(rp => rp.PermissionId == permissionId);
-        if (rolePermission == null)
+        if (!permission.IsAssignable)
         {
-            throw new InvalidOperationException($"Role with id {roleId} does not have permission with id {permissionId}");
+            throw new InvalidOperationException($"Permission with id {permissionId} is not assignable");
         }
+
+        var rolePermission = role.RolePermissions.FirstOrDefault(rp => rp.PermissionId == permissionId)
+            ?? throw new InvalidOperationException($"Role with id {roleId} does not have permission with id {permissionId}");
 
         role.RolePermissions.Remove(rolePermission);
 
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task UpdateRoleAsync(RoleEntity role)
+    public async override Task UpdateRoleAsync(RoleEntity role)
     {
         var existingRole = await dbContext.Roles.FindAsync(role.Id)
             ?? throw new InvalidOperationException($"Role with id {role.Id} does not exist");

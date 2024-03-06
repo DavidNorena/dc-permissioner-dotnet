@@ -1,67 +1,102 @@
 namespace Dabitco.Permissioneer.Services;
 
 using Dabitco.Permissioneer.Domain.Abstract.Services;
+using Dabitco.Permissioneer.Domain.Abstract.Storage;
 using Dabitco.Permissioneer.Domain.Entities;
-using Dabitco.Permissioneer.Domain.Enums;
+using Dabitco.Permissioneer.Domain.Models;
 
-public class PermissioneerContext(IPermissioneerStorage storage) : IPermissioneerContext
+public class PermissioneerContext(PermissionsStorageBase permissionsStorage, ApiKeysStorageBase apiKeysStorage) : IPermissioneerContext
 {
-    public async Task<RoleEntity> AddRoleAsync(string roleName)
+    public async Task<RoleModel> AddRoleAsync(RoleAddRequest roleAddRequest)
     {
-        return await storage.AddRoleAsync(roleName);
+        return await permissionsStorage.AddRoleAsync(roleAddRequest);
     }
 
     public async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        await storage.AssignPermissionToRoleAsync(roleId, permissionId, isAllowed);
+        await permissionsStorage.AssignPermissionToRoleAsync(roleId, permissionId, isAllowed);
+    }
+
+    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid[] permissionId, bool isAllowed = true)
+    {
+        await permissionsStorage.AssignPermissionsToRoleAsync(roleId, permissionId, isAllowed);
     }
 
     public async Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
     {
-        return await storage.IsPermissionGrantedAsync(roleNames, permissionName);
+        return await permissionsStorage.IsPermissionGrantedAsync(roleNames, permissionName);
     }
 
-    public async Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
+    public async Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames)
     {
-        return await storage.ArePermissionsGrantedAsync(roleNames, permissionNames, operatorType);
+        return await permissionsStorage.ArePermissionsGrantedAsync(roleNames, permissionNames);
     }
 
-    public async Task<bool> AreScopesGrantedAsync(string[] requiredScopes, string[] grantedScopes, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
+    public async Task<bool> AreScopesGrantedAsync(string[] requiredScopes, string[] grantedScopes)
     {
-        return await storage.AreScopesGrantedAsync(requiredScopes, grantedScopes, operatorType);
+        return await permissionsStorage.AreScopesGrantedAsync(requiredScopes, grantedScopes);
     }
 
     public async Task DeleteRoleAsync(Guid roleId)
     {
-        await storage.DeleteRoleAsync(roleId);
+        await permissionsStorage.DeleteRoleAsync(roleId);
     }
 
     public async Task<RoleEntity> GetRoleAsync(Guid roleId)
     {
-        return await storage.GetRoleAsync(roleId) ?? throw new Exception($"Role with Id {roleId} not found");
+        return await permissionsStorage.GetRoleAsync(roleId) ?? throw new Exception($"Role with Id {roleId} not found");
     }
 
-    public async Task<IEnumerable<PermissionEntity>> ListPermissionsAsync()
+    public async Task<IEnumerable<PermissionModel>> ListPermissionsAsync()
     {
-        return await storage.ListPermissionsAsync();
+        return await permissionsStorage.ListPermissionsAsync();
     }
 
-    public async Task<IEnumerable<RoleEntity>> ListRolesAsync()
+    public async Task<IEnumerable<RoleModel>> ListRolesAsync()
     {
-        return await storage.ListRolesAsync();
-    }
-
-    public async Task UpdateRoleAsync(Guid roleId, string newRoleName, bool isActive)
-    {
-        var role = await GetRoleAsync(roleId);
-        role.Name = newRoleName;
-        role.IsActive = isActive;
-
-        await storage.UpdateRoleAsync(role);
+        return await permissionsStorage.ListRolesAsync();
     }
 
     public async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
-        await storage.UnassignPermissionFromRoleAsync(roleId, permissionId, isAllowed);
+        await permissionsStorage.UnassignPermissionFromRoleAsync(roleId, permissionId, isAllowed);
+    }
+
+    public async Task UnassignPermissionsFromRoleAsync(Guid roleId, Guid[] permissionId, bool isAllowed = true)
+    {
+        await permissionsStorage.UnassignPermissionsFromRoleAsync(roleId, permissionId, isAllowed);
+    }
+
+    public async Task UpdateRoleAsync(Guid roleId, string newRoleName, bool isActive, string? newDescription = null)
+    {
+        var role = await GetRoleAsync(roleId);
+        role.Name = newRoleName;
+        role.IsActive = isActive;
+        if (newDescription != null)
+        {
+            role.Description = newDescription;
+        }
+
+        await permissionsStorage.UpdateRoleAsync(role);
+    }
+
+    public async Task<string> AddApiKeyAsync(ApiKeyAddRequest addRequest)
+    {
+        return await apiKeysStorage.AddApiKeyAsync(addRequest);
+    }
+
+    public async Task<ApiKeyModel?> GetApiKeyAsync(string apiKey)
+    {
+        return await apiKeysStorage.GetApiKeyAsync(apiKey);
+    }
+
+    public async Task RevokeApiKeyAsync(Guid apiKeyId)
+    {
+        await apiKeysStorage.RevokeApiKeyAsync(apiKeyId);
+    }
+
+    public async Task<IEnumerable<ApiKeyModel>> ListApiKeysAsync(string? ownerId = null)
+    {
+        return await apiKeysStorage.ListApiKeysAsync(ownerId);
     }
 }

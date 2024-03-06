@@ -1,16 +1,15 @@
-namespace Dabitco.Permissioneer.Services;
+namespace Dabitco.Permissioneer.Storage;
 
-using Dabitco.Permissioneer.Domain.Abstract.Services;
+using Dabitco.Permissioneer.Domain.Abstract.Storage;
 using Dabitco.Permissioneer.Domain.Entities;
-using Dabitco.Permissioneer.Domain.Enums;
 using Dabitco.Permissioneer.Domain.Models;
 
-public class InMemoryPermissioneerStorage : IPermissioneerStorage
+public class InMemoryPermissionsStorage : PermissionsStorageBase
 {
     private readonly Dictionary<Guid, RoleEntity> roles = [];
     private readonly Dictionary<Guid, PermissionEntity> permissions = [];
 
-    public InMemoryPermissioneerStorage(IEnumerable<PermissionSeedData> permissionsSeedData, IEnumerable<RoleSeedData> rolesSeedData)
+    public InMemoryPermissionsStorage(IEnumerable<PermissionSeedData> permissionsSeedData, IEnumerable<RoleSeedData> rolesSeedData)
     {
         BuildPermissionsFromSeedData(permissionsSeedData);
         BuildRolesFromSeedData(rolesSeedData);
@@ -31,6 +30,8 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
                 {
                     Id = permissionSeedData.Id,
                     Name = permissionSeedData.Name,
+                    Description = permissionSeedData.Description,
+                    IsAssignable = permissionSeedData.IsAssignable,
                 });
             }
         }
@@ -86,6 +87,7 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
                 {
                     Id = roleSeedData.Id,
                     Name = roleSeedData.Name.ToLower(),
+                    Description = roleSeedData.Description,
                     RolePermissions = rolePermissions,
                     IsSystem = true,
                     IsActive = roleSeedData.IsActive,
@@ -94,25 +96,33 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         }
     }
 
-    public Task<RoleEntity> AddRoleAsync(string roleName)
+    public override Task<RoleModel> AddRoleAsync(RoleAddRequest roleAddRequest)
     {
-        var role = roles.FirstOrDefault(r => r.Value.Name == roleName).Value;
+        var role = roles.FirstOrDefault(r => r.Value.Name == roleAddRequest.Name).Value;
         if (role is not null)
         {
-            throw new InvalidOperationException($"Role with name {roleName} already exists.");
+            throw new InvalidOperationException($"Role with name {roleAddRequest.Name} already exists.");
         }
 
         var newRole = new RoleEntity
         {
             Id = Guid.NewGuid(),
-            Name = roleName,
+            Name = roleAddRequest.Name,
+            Description = roleAddRequest.Description,
         };
 
         roles.Add(newRole.Id, newRole);
-        return Task.FromResult(newRole);
+
+        return Task.FromResult(new RoleModel
+        {
+            Id = newRole.Id,
+            Name = newRole.Name,
+            Description = newRole.Description,
+            IsActive = newRole.IsActive,
+        });
     }
 
-    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public override async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
         var role = await GetRoleAsync(roleId)
             ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
@@ -125,6 +135,11 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         if (!permissions.TryGetValue(permissionId, out var permission))
         {
             throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
+        }
+
+        if (!permission.IsAssignable)
+        {
+            throw new InvalidOperationException($"Permission with id {permissionId} is not assignable");
         }
 
         if (role.RolePermissions.Any(rp => rp.PermissionId == permission.Id))
@@ -141,7 +156,7 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         });
     }
 
-    public Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
+    public override Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
     {
         var normalizedRoleNames = new HashSet<string>(roleNames.Select(rn => rn.ToLowerInvariant()));
 
@@ -169,13 +184,14 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         return Task.FromResult(isPermissionAllowed);
     }
 
-    public Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
+    public override Task<bool> ArePermissionsGrantedAsync(string[] roleNames, string[] permissionNames)
     {
         var normalizedRoleNames = new HashSet<string>(roleNames.Select(rn => rn.ToLowerInvariant()));
+
         var permissionIds = permissions.Values
-                            .Where(p => permissionNames.Contains(p.Name, StringComparer.OrdinalIgnoreCase))
-                            .Select(p => p.Id)
-                            .ToList();
+                                .Where(p => permissionNames.Contains(p.Name, StringComparer.OrdinalIgnoreCase))
+                                .Select(p => p.Id)
+                                .ToList();
 
         if (permissionIds.Count != permissionNames.Length)
         {
@@ -185,39 +201,25 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         var rolePermissions = roles.Values
             .Where(role => normalizedRoleNames.Contains(role.Name.ToLowerInvariant()))
             .SelectMany(role => role.RolePermissions)
-            .Where(rp => permissionIds.Contains(rp.PermissionId))
             .ToList();
 
-        if (operatorType == PermissionsOperatorType.And)
-        {
-            var isAllPermissionsGranted = permissionIds.All(pid =>
-                rolePermissions.Any(rp => rp.PermissionId == pid && rp.IsAllowed) &&
-                !rolePermissions.Any(rp => rp.PermissionId == pid && !rp.IsAllowed));
+        var deniedPermissions = rolePermissions
+            .Where(rp => permissionIds.Contains(rp.PermissionId) && !rp.IsAllowed)
+            .Select(rp => rp.PermissionId)
+            .ToHashSet();
 
-            return Task.FromResult(isAllPermissionsGranted);
-        }
-        else if (operatorType == PermissionsOperatorType.Or)
+        if (deniedPermissions.Count > 0)
         {
-            var isAnyPermissionGranted = rolePermissions.Any(rp => rp.IsAllowed);
-            return Task.FromResult(isAnyPermissionGranted);
+            return Task.FromResult(false);
         }
 
-        return Task.FromResult(false);
+        var isAnyPermissionGranted = rolePermissions
+            .Any(rp => permissionIds.Contains(rp.PermissionId) && rp.IsAllowed);
+
+        return Task.FromResult(isAnyPermissionGranted);
     }
 
-    public Task<bool> AreScopesGrantedAsync(string[] requiredScopes, string[] grantedScopes, PermissionsOperatorType operatorType = PermissionsOperatorType.And)
-    {
-        var result = operatorType switch
-        {
-            PermissionsOperatorType.And => requiredScopes.All(requiredScope => grantedScopes.Contains(requiredScope)),
-            PermissionsOperatorType.Or => requiredScopes.Any(requiredScope => grantedScopes.Contains(requiredScope)),
-            _ => throw new NotImplementedException($"Unsupported operator type: {operatorType}"),
-        };
-
-        return Task.FromResult(result);
-    }
-
-    public Task DeleteRoleAsync(Guid roleId)
+    public override Task DeleteRoleAsync(Guid roleId)
     {
         var existingRole = roles.FirstOrDefault(r => r.Value.Id == roleId).Value
             ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
@@ -232,24 +234,45 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
         return Task.CompletedTask;
     }
 
-    public Task<RoleEntity?> GetRoleAsync(Guid roleId)
+    public override Task<IEnumerable<PermissionEntity>> GetPermissionsAsync(Guid[] permissionsIds)
+    {
+        var permissionsList = permissionsIds
+            .Select(id => permissions.TryGetValue(id, out var permission) ? permission : null)
+            .Where(permission => permission != null)
+            .Select(permission => permission!);
+
+        return Task.FromResult(permissionsList);
+    }
+
+    public override Task<RoleEntity?> GetRoleAsync(Guid roleId)
     {
         roles.TryGetValue(roleId, out var role);
 
         return Task.FromResult(role);
     }
 
-    public Task<IEnumerable<PermissionEntity>> ListPermissionsAsync()
+    public override Task<IEnumerable<PermissionModel>> ListPermissionsAsync()
     {
-        return Task.FromResult(permissions.Values.AsEnumerable());
+        return Task.FromResult(permissions.Values.Select(p => new PermissionModel
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Description = p.Description,
+        }));
     }
 
-    public Task<IEnumerable<RoleEntity>> ListRolesAsync()
+    public override Task<IEnumerable<RoleModel>> ListRolesAsync()
     {
-        return Task.FromResult(roles.Values.AsEnumerable());
+        return Task.FromResult(roles.Values.Select(r => new RoleModel
+        {
+            Id = r.Id,
+            Name = r.Name,
+            Description = r.Description,
+            IsActive = r.IsActive,
+        }));
     }
 
-    public async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public override async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
     {
         var role = await GetRoleAsync(roleId)
             ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
@@ -264,13 +287,18 @@ public class InMemoryPermissioneerStorage : IPermissioneerStorage
             throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
         }
 
+        if (!permission.IsAssignable)
+        {
+            throw new InvalidOperationException($"Permission with id {permissionId} is not assignable");
+        }
+
         var existingRolePermission = role.RolePermissions.FirstOrDefault(rp => rp.PermissionId == permissionId)
             ?? throw new InvalidOperationException($"Role with id {roleId} does not have permission with id {permissionId}");
 
         role.RolePermissions.Remove(existingRolePermission);
     }
 
-    public Task UpdateRoleAsync(RoleEntity role)
+    public override Task UpdateRoleAsync(RoleEntity role)
     {
         var existingRole = roles.FirstOrDefault(r => r.Value.Id == role.Id).Value
             ?? throw new InvalidOperationException($"Role with id {role.Id} does not exist");

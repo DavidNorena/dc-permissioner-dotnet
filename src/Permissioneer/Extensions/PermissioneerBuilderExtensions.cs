@@ -1,22 +1,28 @@
 namespace Dabitco.Permissioneer.Domain;
 
-using Dabitco.Permissioneer.Domain.Abstract.Services;
+using Dabitco.Permissioneer.Domain.Abstract.Storage;
 using Dabitco.Permissioneer.Domain.Models;
-using Dabitco.Permissioneer.Services;
+using Dabitco.Permissioneer.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
 public static class PermissioneerBuilderExtensions
 {
     public static PermissioneerBuilder AddInMemoryStorage(this PermissioneerBuilder builder)
     {
-        builder.Services.AddSingleton<IPermissioneerStorage, InMemoryPermissioneerStorage>();
+        builder.Services.AddSingleton<PermissionsStorageBase, InMemoryPermissionsStorage>();
+        builder.Services.AddSingleton<ApiKeysStorageBase, InMemoryApiKeysStorage>();
 
         return builder;
     }
 
-    public static PermissioneerBuilder AddPermissionsSeedData(this PermissioneerBuilder builder, IEnumerable<PermissionSeedData> permissionsSeedData)
+    public static PermissioneerBuilder AddPermissionsSeedData(this PermissioneerBuilder builder, IEnumerable<PermissionSeedData>? permissionsSeedData)
     {
-        builder.Services.AddSingleton(permissionsSeedData);
+        var mergedPermissionsSeedData = DefaultPermissioneerDataSeed.PermissionsSeed;
+        if (permissionsSeedData != null && permissionsSeedData.Any())
+        {
+            mergedPermissionsSeedData = mergedPermissionsSeedData.Concat(permissionsSeedData);
+        }
+        builder.Services.AddSingleton(mergedPermissionsSeedData);
 
         return builder;
     }

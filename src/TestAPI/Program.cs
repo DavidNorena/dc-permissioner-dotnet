@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using Dabitco.Permissioneer.AspNet.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +27,11 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.Authority = builder.Configuration["Auth0:Authority"];
@@ -35,7 +40,8 @@ builder.Services
         {
             NameClaimType = ClaimTypes.NameIdentifier
         };
-    });
+    })
+    .AddScheme<ApiKeySchemeOptions, ApiKeySchemeHandler>(ApiKeySchemeDefaults.Scheme, opts => { });
 
 builder.Services.Configure<RouteOptions>(opts => opts.LowercaseUrls = true);
 builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), true);

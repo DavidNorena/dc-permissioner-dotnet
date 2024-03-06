@@ -18,5 +18,12 @@ public class PermissionEntityConfiguration : IEntityTypeConfiguration<Permission
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(64);
+
+        builder.Property(x => x.Description)
+            .IsRequired()
+            .HasMaxLength(256);
+
+        builder.Property(x => x.IsAssignable)
+            .IsRequired();
     }
 }
