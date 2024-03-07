@@ -1,14 +1,18 @@
 namespace Dabitco.Permissioneer.AspNet.Controllers;
 
+using System.Security.Claims;
 using Dabitco.Permissioneer.AspNet.Authorization;
 using Dabitco.Permissioneer.Domain.Abstract.Services;
-using Dabitco.Permissioneer.Domain.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("permissioneer/[controller]")]
-public class PermissionsController(IPermissioneerContext permissioneerContext) : ControllerBase
+[Route("[controller]")]
+public class PermissionsController(IPermissioneerContext permissioneerContext, IHttpContextAccessor httpContextAccessor) : ControllerBase
 {
+    private readonly HttpContext httpContext = httpContextAccessor.HttpContext ?? throw new ArgumentNullException(nameof(httpContextAccessor), "The HTTP context cannot be null.");
+
+
     [HttpGet(Name = nameof(GetPermissionsAsync))]
     [Permissioneer("read:permissions")]
     public async Task<IActionResult> GetPermissionsAsync()
@@ -18,11 +22,27 @@ public class PermissionsController(IPermissioneerContext permissioneerContext) :
         return Ok(response);
     }
 
-    [HttpPost("role", Name = nameof(AddRoleAsync))]
-    [Permissioneer("write:roles")]
-    public async Task<IActionResult> AddRoleAsync(RoleAddRequest roleAddRequest)
+    [HttpGet("owned", Name = nameof(GetPermissionsOwnAsync))]
+    [Permissioneer("read:own-permissions")]
+    public async Task<IActionResult> GetPermissionsOwnAsync()
     {
-        var response = await permissioneerContext.AddRoleAsync(roleAddRequest);
+        var user = httpContext.User;
+        var scopeClaim = user.FindFirst("scope");
+        var roleNames = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
+
+        List<string> response = [];
+
+        if (roleNames.Length > 0)
+        {
+            var roles = await permissioneerContext.GetRolesAsync(roleNames);
+            response.AddRange(roles.SelectMany(r => r.Permissions));
+        }
+
+        if (scopeClaim != null)
+        {
+            var userScopes = scopeClaim.Value.Split(' ');
+            response.AddRange(userScopes);
+        }
 
         return Ok(response);
     }

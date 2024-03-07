@@ -50,6 +50,12 @@ public static class DefaultPermissioneerDataSeed
         },
         new PermissionSeedData
         {
+            Id = DefaultPermissioneerDataSeedPermissionsIds.PermissionsOwnRead,
+            Name = "read:own-permissions",
+            Description = "Read Own Permissions"
+        },
+        new PermissionSeedData
+        {
             Id = DefaultPermissioneerDataSeedPermissionsIds.PermissionsAssign,
             Name = "assign:permissions",
             Description = "Assign Permissions"
@@ -72,6 +78,7 @@ public static class DefaultPermissioneerDataSeedPermissionsIds
     public static readonly Guid RolesWrite = Guid.Parse("f2d82c53-f6be-4095-8a98-bd62c12842c5");
     public static readonly Guid RolesDelete = Guid.Parse("f2d82c53-f6be-4095-8a98-bd62c12842c6");
     public static readonly Guid PermissionsRead = Guid.Parse("f2d82c53-f6be-4095-8a98-bd62c12842c7");
+    public static readonly Guid PermissionsOwnRead = Guid.Parse("f2d82c53-f6be-4095-8a98-bd62c12842c8");
     public static readonly Guid PermissionsAssign = Guid.Parse("f2d82c53-f6be-4095-8a98-bd62c12842c0");
     public static readonly Guid PermissionsUnassign = Guid.Parse("f2d82c53-f6be-4095-8a98-bd62c12842c1");
 }

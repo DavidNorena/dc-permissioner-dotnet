@@ -150,6 +150,13 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                         },
                         new
                         {
+                            Id = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c8"),
+                            Description = "Read Own Permissions",
+                            IsAssignable = true,
+                            Name = "read:own-permissions"
+                        },
+                        new
+                        {
                             Id = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c0"),
                             Description = "Assign Permissions",
                             IsAssignable = true,

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Dabitco.Permissioneer.AspNet.Authentication;
+using Dabitco.Permissioneer.TestAPI.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,26 @@ builder.Services.AddSwaggerGen(options =>
             Name = "devs@dabit.co",
         },
     });
+
+    options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
+    });
+
+    options.AddSecurityDefinition(ApiKeySchemeDefaults.Scheme, new OpenApiSecurityScheme
+    {
+        Description = "API Key Authorization header using the X-API-Key scheme",
+        Name = "X-API-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = ApiKeySchemeDefaults.Scheme,
+    });
+
+    options.OperationFilter<AuthorizationOperationFilter>();
 });
 
 builder.Services
@@ -45,8 +66,9 @@ builder.Services
 
 builder.Services.Configure<RouteOptions>(opts => opts.LowercaseUrls = true);
 builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), true);
-
 builder.Services.AddLogging();
+
+builder.Services.AddHttpContextAccessor();
 var permissioneerBuilder = builder.Services.AddPermissioneer()
     // UNCOMMENT TO USE JUST IN-MEMORY STORAGE
     // .AddInMemoryStorage();

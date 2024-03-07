@@ -53,6 +53,26 @@ public class InMemoryApiKeysStorage(PermissionsStorageBase permissionsStorage) :
         return Task.FromResult(result);
     }
 
+    public override Task<ApiKeyModel?> GetApiKeyAsync(Guid apiKeyId)
+    {
+        var apiKeyEntity = apiKeys.FirstOrDefault(a => a.Id == apiKeyId);
+
+        var result = apiKeyEntity is null
+            ? null
+            : new ApiKeyModel
+            {
+                Id = apiKeyEntity.Id,
+                Name = apiKeyEntity.Name,
+                Description = apiKeyEntity.Description,
+                CreatedDate = apiKeyEntity.CreatedDate,
+                ExpirationDate = apiKeyEntity.ExpirationDate,
+                OwnerId = apiKeyEntity.OwnerId,
+                Permissions = apiKeyEntity.Permissions.Select(p => p.Name),
+            };
+
+        return Task.FromResult(result);
+    }
+
     public override Task<IEnumerable<ApiKeyModel>> ListApiKeysAsync(string? ownerId = null)
     {
         if (string.IsNullOrEmpty(ownerId))

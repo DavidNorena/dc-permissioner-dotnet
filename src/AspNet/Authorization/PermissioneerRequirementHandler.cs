@@ -10,7 +10,7 @@ public class PermissioneerRequirementHandler(IPermissioneerContext permissioneer
     {
         var user = context.User;
         var scopeClaim = user.FindFirst("scope");
-        var roleClaims = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
+        var roleNames = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
 
         if (scopeClaim != null)
         {
@@ -20,9 +20,9 @@ public class PermissioneerRequirementHandler(IPermissioneerContext permissioneer
                 context.Succeed(requirement);
             }
         }
-        else if (roleClaims.Length > 0)
+        else if (roleNames.Length > 0)
         {
-            if (await permissioneerContext.ArePermissionsGrantedAsync(roleClaims, requirement.Scopes))
+            if (await permissioneerContext.ArePermissionsGrantedAsync(roleNames, requirement.Scopes))
             {
                 context.Succeed(requirement);
             }

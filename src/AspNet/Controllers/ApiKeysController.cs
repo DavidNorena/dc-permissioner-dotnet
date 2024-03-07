@@ -6,25 +6,19 @@ using Dabitco.Permissioneer.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("permissioneer/[controller]")]
+[Route("[controller]")]
 public class ApiKeysController(IPermissioneerContext permissioneerContext) : ControllerBase
 {
     [HttpPost(Name = nameof(CreateApiKeyAsync))]
     [Permissioneer("write:api-keys")]
     public async Task<IActionResult> CreateApiKeyAsync(ApiKeyAddRequest addRequest)
     {
-        var response = await permissioneerContext.AddApiKeyAsync(addRequest);
+        var apiKey = await permissioneerContext.AddApiKeyAsync(addRequest);
 
-        return Ok(response);
-    }
-
-    [HttpGet("{apiKey}", Name = nameof(GetApiKeyAsync))]
-    [Permissioneer("read:api-keys")]
-    public async Task<IActionResult> GetApiKeyAsync(string apiKey)
-    {
-        var response = await permissioneerContext.GetApiKeyAsync(apiKey);
-
-        return Ok(response);
+        return Ok(new
+        {
+            apiKey,
+        });
     }
 
     [HttpGet(Name = nameof(GetApiKeysAsync))]
@@ -32,6 +26,19 @@ public class ApiKeysController(IPermissioneerContext permissioneerContext) : Con
     public async Task<IActionResult> GetApiKeysAsync()
     {
         var response = await permissioneerContext.ListApiKeysAsync();
+
+        return Ok(response);
+    }
+
+    [HttpGet("{apiKeyId}", Name = nameof(GetApiKeyAsync))]
+    [Permissioneer("read:api-keys")]
+    public async Task<IActionResult> GetApiKeyAsync(Guid apiKeyId)
+    {
+        var response = await permissioneerContext.GetApiKeyAsync(apiKeyId);
+        if (response == null)
+        {
+            return NotFound();
+        }
 
         return Ok(response);
     }

@@ -96,19 +96,19 @@ public class InMemoryPermissionsStorage : PermissionsStorageBase
         }
     }
 
-    public override Task<RoleModel> AddRoleAsync(RoleAddRequest roleAddRequest)
+    public override Task<RoleModel> AddRoleAsync(RoleAddRequest request)
     {
-        var role = roles.FirstOrDefault(r => r.Value.Name == roleAddRequest.Name).Value;
+        var role = roles.FirstOrDefault(r => r.Value.Name == request.Name).Value;
         if (role is not null)
         {
-            throw new InvalidOperationException($"Role with name {roleAddRequest.Name} already exists.");
+            throw new InvalidOperationException($"Role with name {request.Name} already exists.");
         }
 
         var newRole = new RoleEntity
         {
             Id = Guid.NewGuid(),
-            Name = roleAddRequest.Name,
-            Description = roleAddRequest.Description,
+            Name = request.Name,
+            Description = request.Description,
         };
 
         roles.Add(newRole.Id, newRole);
@@ -122,36 +122,36 @@ public class InMemoryPermissionsStorage : PermissionsStorageBase
         });
     }
 
-    public override async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public override async Task AssignPermissionToRoleAsync(RolePermissionAssignRequest request)
     {
-        var role = await GetRoleAsync(roleId)
-            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+        var role = await GetRoleAsync(request.RoleId)
+            ?? throw new InvalidOperationException($"Role with id {request.RoleId} does not exist");
 
         if (role.IsSystem)
         {
             throw new InvalidOperationException("System roles cannot be modified");
         }
 
-        if (!permissions.TryGetValue(permissionId, out var permission))
+        if (!permissions.TryGetValue(request.PermissionId, out var permission))
         {
-            throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
+            throw new InvalidOperationException($"Permission with id {request.PermissionId} does not exist");
         }
 
         if (!permission.IsAssignable)
         {
-            throw new InvalidOperationException($"Permission with id {permissionId} is not assignable");
+            throw new InvalidOperationException($"Permission with id {request.PermissionId} is not assignable");
         }
 
         if (role.RolePermissions.Any(rp => rp.PermissionId == permission.Id))
         {
-            throw new InvalidOperationException($"Role with id {roleId} already has permission with id {permissionId}");
+            throw new InvalidOperationException($"Role with id {request.RoleId} already has permission with id {request.PermissionId}");
         }
 
         role.RolePermissions.Add(new RolePermissionEntity
         {
-            RoleId = roleId,
-            PermissionId = permissionId,
-            IsAllowed = isAllowed,
+            RoleId = request.RoleId,
+            PermissionId = request.PermissionId,
+            IsAllowed = request.IsAllowed,
             IsSystem = false,
         });
     }
@@ -251,6 +251,24 @@ public class InMemoryPermissionsStorage : PermissionsStorageBase
         return Task.FromResult(role);
     }
 
+    public override Task<IEnumerable<RoleModel>> GetRolesAsync(string[] roleNames)
+    {
+        var normalizedRoleNames = new HashSet<string>(roleNames.Select(rn => rn.ToLowerInvariant()));
+
+        var rolesList = roles.Values
+            .Where(role => normalizedRoleNames.Contains(role.Name.ToLowerInvariant()))
+            .Select(role => new RoleModel
+            {
+                Id = role.Id,
+                Name = role.Name,
+                Description = role.Description,
+                IsActive = role.IsActive,
+                Permissions = role.RolePermissions.Select(rp => permissions[rp.PermissionId].Name),
+            });
+
+        return Task.FromResult(rolesList);
+    }
+
     public override Task<IEnumerable<PermissionModel>> ListPermissionsAsync()
     {
         return Task.FromResult(permissions.Values.Select(p => new PermissionModel
@@ -258,6 +276,7 @@ public class InMemoryPermissionsStorage : PermissionsStorageBase
             Id = p.Id,
             Name = p.Name,
             Description = p.Description,
+            IsAssignable = p.IsAssignable,
         }));
     }
 
@@ -272,28 +291,28 @@ public class InMemoryPermissionsStorage : PermissionsStorageBase
         }));
     }
 
-    public override async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public override async Task UnassignPermissionFromRoleAsync(RolePermissionAssignRequest request)
     {
-        var role = await GetRoleAsync(roleId)
-            ?? throw new InvalidOperationException($"Role with id {roleId} does not exist");
+        var role = await GetRoleAsync(request.RoleId)
+            ?? throw new InvalidOperationException($"Role with id {request.RoleId} does not exist");
 
         if (role.IsSystem)
         {
             throw new InvalidOperationException("System roles cannot be modified");
         }
 
-        if (!permissions.TryGetValue(permissionId, out var permission))
+        if (!permissions.TryGetValue(request.PermissionId, out var permission))
         {
-            throw new InvalidOperationException($"Permission with id {permissionId} does not exist");
+            throw new InvalidOperationException($"Permission with id {request.PermissionId} does not exist");
         }
 
         if (!permission.IsAssignable)
         {
-            throw new InvalidOperationException($"Permission with id {permissionId} is not assignable");
+            throw new InvalidOperationException($"Permission with id {request.PermissionId} is not assignable");
         }
 
-        var existingRolePermission = role.RolePermissions.FirstOrDefault(rp => rp.PermissionId == permissionId)
-            ?? throw new InvalidOperationException($"Role with id {roleId} does not have permission with id {permissionId}");
+        var existingRolePermission = role.RolePermissions.FirstOrDefault(rp => rp.PermissionId == request.PermissionId)
+            ?? throw new InvalidOperationException($"Role with id {request.RoleId} does not have permission with id {request.PermissionId}");
 
         role.RolePermissions.Remove(existingRolePermission);
     }

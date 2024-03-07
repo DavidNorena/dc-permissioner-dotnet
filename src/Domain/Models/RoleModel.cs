@@ -7,6 +7,5 @@ public class RoleModel
     public required string Description { get; set; }
     public bool IsActive { get; set; }
     public bool IsSystem { get; set; }
-
-    public IEnumerable<Guid> PermissionsIds { get; set; } = [];
+    public IEnumerable<string> Permissions { get; set; } = [];
 }

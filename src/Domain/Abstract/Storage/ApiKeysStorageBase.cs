@@ -8,6 +8,7 @@ public abstract class ApiKeysStorageBase
 {
     public abstract Task<string> AddApiKeyAsync(ApiKeyAddRequest addRequest);
     public abstract Task<ApiKeyModel?> GetApiKeyAsync(string apiKey);
+    public abstract Task<ApiKeyModel?> GetApiKeyAsync(Guid apiKeyId);
     public abstract Task<IEnumerable<ApiKeyModel>> ListApiKeysAsync(string? ownerId = null);
     public abstract Task RevokeApiKeyAsync(Guid apiKeyId);
 

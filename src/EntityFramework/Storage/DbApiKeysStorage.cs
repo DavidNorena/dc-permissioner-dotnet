@@ -54,6 +54,28 @@ public class DbApiKeysStorage(PermissioneerDbContext dbContext, PermissionsStora
         return Task.FromResult(result);
     }
 
+    public override Task<ApiKeyModel?> GetApiKeyAsync(Guid apiKeyId)
+    {
+        var apiKeyEntity = dbContext.ApiKeys
+            .Include(a => a.Permissions)
+            .FirstOrDefault(a => a.Id == apiKeyId);
+
+        var result = apiKeyEntity is null
+            ? null
+            : new ApiKeyModel
+            {
+                Id = apiKeyEntity.Id,
+                Name = apiKeyEntity.Name,
+                Description = apiKeyEntity.Description,
+                CreatedDate = apiKeyEntity.CreatedDate,
+                ExpirationDate = apiKeyEntity.ExpirationDate,
+                OwnerId = apiKeyEntity.OwnerId,
+                Permissions = apiKeyEntity.Permissions.Select(p => p.Name),
+            };
+
+        return Task.FromResult(result);
+    }
+
     public override async Task<IEnumerable<ApiKeyModel>> ListApiKeysAsync(string? ownerId = null)
     {
         var apiKeys = dbContext.ApiKeys

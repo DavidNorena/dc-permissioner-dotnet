@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dabitco.Permissioneer.TestAPI.Migrations
 {
     [DbContext(typeof(PermissioneerDbContext))]
-    [Migration("20240306162641_InitialSetup")]
+    [Migration("20240307033231_InitialSetup")]
     partial class InitialSetup
     {
         /// <inheritdoc />
@@ -150,6 +150,13 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                             Description = "Read Permissions",
                             IsAssignable = true,
                             Name = "read:permissions"
+                        },
+                        new
+                        {
+                            Id = new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c8"),
+                            Description = "Read Own Permissions",
+                            IsAssignable = true,
+                            Name = "read:own-permissions"
                         },
                         new
                         {

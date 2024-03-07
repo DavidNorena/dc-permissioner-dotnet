@@ -7,19 +7,14 @@ using Dabitco.Permissioneer.Domain.Models;
 
 public class PermissioneerContext(PermissionsStorageBase permissionsStorage, ApiKeysStorageBase apiKeysStorage) : IPermissioneerContext
 {
-    public async Task<RoleModel> AddRoleAsync(RoleAddRequest roleAddRequest)
+    public async Task<RoleModel> AddRoleAsync(RoleAddRequest request)
     {
-        return await permissionsStorage.AddRoleAsync(roleAddRequest);
+        return await permissionsStorage.AddRoleAsync(request);
     }
 
-    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task AssignPermissionToRoleAsync(RolePermissionAssignRequest request)
     {
-        await permissionsStorage.AssignPermissionToRoleAsync(roleId, permissionId, isAllowed);
-    }
-
-    public async Task AssignPermissionToRoleAsync(Guid roleId, Guid[] permissionId, bool isAllowed = true)
-    {
-        await permissionsStorage.AssignPermissionsToRoleAsync(roleId, permissionId, isAllowed);
+        await permissionsStorage.AssignPermissionToRoleAsync(request);
     }
 
     public async Task<bool> IsPermissionGrantedAsync(string[] roleNames, string permissionName)
@@ -47,6 +42,11 @@ public class PermissioneerContext(PermissionsStorageBase permissionsStorage, Api
         return await permissionsStorage.GetRoleAsync(roleId) ?? throw new Exception($"Role with Id {roleId} not found");
     }
 
+    public async Task<IEnumerable<RoleModel>> GetRolesAsync(string[] roleNames)
+    {
+        return await permissionsStorage.GetRolesAsync(roleNames);
+    }
+
     public async Task<IEnumerable<PermissionModel>> ListPermissionsAsync()
     {
         return await permissionsStorage.ListPermissionsAsync();
@@ -57,14 +57,9 @@ public class PermissioneerContext(PermissionsStorageBase permissionsStorage, Api
         return await permissionsStorage.ListRolesAsync();
     }
 
-    public async Task UnassignPermissionFromRoleAsync(Guid roleId, Guid permissionId, bool isAllowed = true)
+    public async Task UnassignPermissionFromRoleAsync(RolePermissionAssignRequest request)
     {
-        await permissionsStorage.UnassignPermissionFromRoleAsync(roleId, permissionId, isAllowed);
-    }
-
-    public async Task UnassignPermissionsFromRoleAsync(Guid roleId, Guid[] permissionId, bool isAllowed = true)
-    {
-        await permissionsStorage.UnassignPermissionsFromRoleAsync(roleId, permissionId, isAllowed);
+        await permissionsStorage.UnassignPermissionFromRoleAsync(request);
     }
 
     public async Task UpdateRoleAsync(Guid roleId, string newRoleName, bool isActive, string? newDescription = null)
@@ -88,6 +83,11 @@ public class PermissioneerContext(PermissionsStorageBase permissionsStorage, Api
     public async Task<ApiKeyModel?> GetApiKeyAsync(string apiKey)
     {
         return await apiKeysStorage.GetApiKeyAsync(apiKey);
+    }
+
+    public async Task<ApiKeyModel?> GetApiKeyAsync(Guid apiKeyId)
+    {
+        return await apiKeysStorage.GetApiKeyAsync(apiKeyId);
     }
 
     public async Task RevokeApiKeyAsync(Guid apiKeyId)

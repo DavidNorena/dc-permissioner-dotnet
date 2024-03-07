@@ -139,6 +139,7 @@ namespace Dabitco.Permissioneer.TestAPI.Migrations
                     { new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c5"), "Create or Update Roles", true, "write:roles" },
                     { new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c6"), "Delete Roles", true, "delete:roles" },
                     { new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c7"), "Read Permissions", true, "read:permissions" },
+                    { new Guid("f2d82c53-f6be-4095-8a98-bd62c12842c8"), "Read Own Permissions", true, "read:own-permissions" },
                     { new Guid("f9ec9c70-3c35-4b6d-b82a-5bbd4b43e4a3"), "Read Quotes", true, "read:quotes" }
                 });
 
