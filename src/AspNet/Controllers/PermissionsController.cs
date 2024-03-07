@@ -3,6 +3,7 @@ namespace Dabitco.Permissioneer.AspNet.Controllers;
 using System.Security.Claims;
 using Dabitco.Permissioneer.AspNet.Authorization;
 using Dabitco.Permissioneer.Domain.Abstract.Services;
+using Dabitco.Permissioneer.Domain.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +15,7 @@ public class PermissionsController(IPermissioneerContext permissioneerContext, I
 
 
     [HttpGet(Name = nameof(GetPermissionsAsync))]
+    [ProducesResponseType(typeof(IEnumerable<PermissionModel>), 200)]
     [Permissioneer("read:permissions")]
     public async Task<IActionResult> GetPermissionsAsync()
     {
@@ -23,6 +25,7 @@ public class PermissionsController(IPermissioneerContext permissioneerContext, I
     }
 
     [HttpGet("owned", Name = nameof(GetPermissionsOwnAsync))]
+    [ProducesResponseType(typeof(IEnumerable<string>), 200)]
     [Permissioneer("read:own-permissions")]
     public async Task<IActionResult> GetPermissionsOwnAsync()
     {

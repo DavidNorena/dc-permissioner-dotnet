@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 public class RolesController(IPermissioneerContext permissioneerContext) : ControllerBase
 {
     [HttpPost(Name = nameof(CreateRoleAsync))]
+    [ProducesResponseType(typeof(RoleModel), 200)]
     [Permissioneer("write:roles")]
     public async Task<IActionResult> CreateRoleAsync(RoleAddRequest request)
     {
@@ -19,6 +20,7 @@ public class RolesController(IPermissioneerContext permissioneerContext) : Contr
     }
 
     [HttpGet(Name = nameof(GetRolesAsync))]
+    [ProducesResponseType(typeof(IEnumerable<RoleModel>), 200)]
     [Permissioneer("read:roles")]
     public async Task<IActionResult> GetRolesAsync()
     {

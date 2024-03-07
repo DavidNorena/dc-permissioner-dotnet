@@ -10,18 +10,17 @@ using Microsoft.AspNetCore.Mvc;
 public class ApiKeysController(IPermissioneerContext permissioneerContext) : ControllerBase
 {
     [HttpPost(Name = nameof(CreateApiKeyAsync))]
+    [ProducesResponseType(typeof(string), 200)]
     [Permissioneer("write:api-keys")]
     public async Task<IActionResult> CreateApiKeyAsync(ApiKeyAddRequest addRequest)
     {
         var apiKey = await permissioneerContext.AddApiKeyAsync(addRequest);
 
-        return Ok(new
-        {
-            apiKey,
-        });
+        return Ok(apiKey);
     }
 
     [HttpGet(Name = nameof(GetApiKeysAsync))]
+    [ProducesResponseType(typeof(IEnumerable<ApiKeyModel>), 200)]
     [Permissioneer("read:api-keys")]
     public async Task<IActionResult> GetApiKeysAsync()
     {
@@ -31,6 +30,7 @@ public class ApiKeysController(IPermissioneerContext permissioneerContext) : Con
     }
 
     [HttpGet("{apiKeyId}", Name = nameof(GetApiKeyAsync))]
+    [ProducesResponseType(typeof(ApiKeyModel), 200)]
     [Permissioneer("read:api-keys")]
     public async Task<IActionResult> GetApiKeyAsync(Guid apiKeyId)
     {
